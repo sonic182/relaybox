@@ -794,7 +794,18 @@ describe('media persistence', () => {
     await service.ingest(instance, [imageMessage('MEDIA-1')]);
 
     const media = await db.media.findFirst({ where: { message: { keyId: 'MEDIA-1' } } });
-    expect(media).toMatchObject({ path: 'MEDIA-1.jpg', mimetype: 'image/jpeg', size: 6 });
+    expect(media).toMatchObject({ mimetype: 'image/jpeg', size: 6 });
+    expect(media!.path).toMatch(/^[0-9a-f-]{36}\.jpg$/);
+    expect(readFileSync(join(MEDIA_DIR, instance.name, media!.path), 'utf8')).toBe('pixels');
+  });
+
+  it('never derives the file path from the sender-chosen key id', async () => {
+    const { db, instance, service } = await setup([]);
+
+    await service.ingest(instance, [imageMessage('../../escape')]);
+
+    const media = await db.media.findFirst({ where: { message: { keyId: '../../escape' } } });
+    expect(media!.path).not.toContain('/');
     expect(readFileSync(join(MEDIA_DIR, instance.name, media!.path), 'utf8')).toBe('pixels');
   });
 

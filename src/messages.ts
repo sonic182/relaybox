@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { JsonObject } from '@zenstackhq/orm';
@@ -166,8 +167,8 @@ export function createMessageService({ db, outbox, logger }: MessageServiceOptio
     mkdirSync(directory, { recursive: true });
     // Only the filename is stored: the instance folder is resolved on serve, so a
     // renamed instance keeps its row valid (the folder moves with the rename).
-    const path = `${message.key.id}${mediaExtension(media.mimetype)}`;
-    writeFileSync(join(directory, path), media.buffer);
+    const path = `${randomUUID()}${mediaExtension(media.mimetype)}`;
+    writeFileSync(join(directory, path), media.buffer, { flag: 'wx' });
     await db.media.create({ data: { messageId, path, mimetype: media.mimetype, size: media.buffer.length } });
   }
 
