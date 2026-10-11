@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getContentType, getDevice, jidNormalizedUser } from 'baileys';
 import type { WAMessage } from 'baileys';
@@ -794,8 +794,34 @@ describe('media persistence', () => {
     await service.ingest(instance, [imageMessage('MEDIA-1')]);
 
     const media = await db.media.findFirst({ where: { message: { keyId: 'MEDIA-1' } } });
-    expect(media).toMatchObject({ path: 'MEDIA-1.jpg', mimetype: 'image/jpeg', size: 6 });
+    expect(media).toMatchObject({ mimetype: 'image/jpeg', size: 6 });
+    expect(media!.path).toMatch(/^[0-9a-f-]{36}\.jpg$/);
     expect(readFileSync(join(MEDIA_DIR, instance.name, media!.path), 'utf8')).toBe('pixels');
+  });
+
+  it('never derives the file path from the sender-chosen key id', async () => {
+    const { db, instance, service } = await setup([]);
+
+    await service.ingest(instance, [imageMessage('../../escape')]);
+
+    const media = await db.media.findFirst({ where: { message: { keyId: '../../escape' } } });
+    expect(media!.path).not.toContain('/');
+    expect(readFileSync(join(MEDIA_DIR, instance.name, media!.path), 'utf8')).toBe('pixels');
+  });
+
+  it('removes the written file when its media row cannot be stored', async () => {
+    const { db, instance } = await setup([]);
+    const logger = silentLogger();
+    const outbox = createOutbox({ db, queue: createDatabaseQueue({ db, logger }), logger, serverUrl: 'http://localhost:3000' });
+    const media = { ...db.media, create: async () => { throw new Error('insert failed'); } };
+    const failingDb = new Proxy(db, { get: (target, property) => (property === 'media' ? media : Reflect.get(target, property)) });
+    const service = createMessageService({ db: failingDb, outbox, logger });
+
+    await service.ingest(instance, [imageMessage('MEDIA-ORPHAN')]);
+
+    expect(await db.message.count({ where: { keyId: 'MEDIA-ORPHAN' } })).toBe(1);
+    const directory = join(MEDIA_DIR, instance.name);
+    expect(existsSync(directory) ? readdirSync(directory) : []).toEqual([]);
   });
 
   it('persists the message alone when nothing was downloaded', async () => {

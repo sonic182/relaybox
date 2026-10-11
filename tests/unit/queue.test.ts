@@ -226,4 +226,24 @@ describe('createDatabaseQueue', () => {
 
     expect(count).toBe(1);
   });
+
+  it('clears the payload of old settled deliveries but keeps the rows, so dedupe still holds', async () => {
+    const { db, instance, queue } = await setupQueue();
+    for (const [id, status] of [['delivered', 'delivered'], ['failed', 'failed'], ['pending', 'pending']]) {
+      await queue.enqueue(job(instance.id, { id, dedupeKey: id }));
+      await db.webhookDelivery.update({ where: { id }, data: { status } });
+    }
+
+    expect(await queue.compactFinished(new Date(Date.now() - 60_000))).toBe(0);
+    expect(await queue.compactFinished(new Date(Date.now() + 60_000))).toBe(2);
+    expect(await queue.compactFinished(new Date(Date.now() + 60_000))).toBe(0);
+
+    const rows = await db.webhookDelivery.findMany({ orderBy: { id: 'asc' }, select: { id: true, payload: true } });
+    expect(rows).toEqual([
+      { id: 'delivered', payload: null },
+      { id: 'failed', payload: null },
+      { id: 'pending', payload: { event: 'connection.update' } },
+    ]);
+    expect(await queue.enqueue(job(instance.id, { id: 'replay', dedupeKey: 'delivered' }))).toBe(false);
+  });
 });

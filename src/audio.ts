@@ -1,23 +1,27 @@
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { spawn } from 'node:child_process';
-import { MAX_OUTBOUND_MEDIA_BYTES } from './config';
+import { FFMPEG_PATH, MAX_OUTBOUND_MEDIA_BYTES } from './config';
 import { InvalidMediaError } from './mediaFetch';
 
 export type TranscodeOptions = {
   /** Headerless 16-bit PCM input, which carries no format ffmpeg could detect on its own. */
   lpcm?: boolean;
   timeoutMs?: number;
+  ffmpegPath?: string;
 };
 
 /** A voice note that takes this long to convert is a payload we should refuse, not wait on. */
 const TRANSCODE_TIMEOUT_MS = 30_000;
 
+const INPUT_FORMATS = 'ogg,mp3,mov,matroska,wav,aac,flac,amr';
+
 /**
  * Encodes arbitrary audio as the ogg/opus WhatsApp expects for a push-to-talk note, with the
  * same settings the reference passes fluent-ffmpeg so the result plays back identically.
  */
-export function transcodeToOpus(input: Buffer, { lpcm, timeoutMs = TRANSCODE_TIMEOUT_MS }: TranscodeOptions = {}): Promise<Buffer> {
+export function transcodeToOpus(input: Buffer, { lpcm, timeoutMs = TRANSCODE_TIMEOUT_MS, ffmpegPath = FFMPEG_PATH }: TranscodeOptions = {}): Promise<Buffer> {
   const args = [
+    '-protocol_whitelist', 'pipe',
+    '-format_whitelist', lpcm ? 's16le' : INPUT_FORMATS,
     ...(lpcm ? ['-f', 's16le', '-ar', '24000', '-ac', '1'] : []),
     '-i', 'pipe:0',
     '-f', 'ogg',
@@ -40,20 +44,20 @@ export function transcodeToOpus(input: Buffer, { lpcm, timeoutMs = TRANSCODE_TIM
   ];
 
   return new Promise<Buffer>((resolve, reject) => {
-    const child = spawn(ffmpegPath.path, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(ffmpegPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
 
     const chunks: Buffer[] = [];
     let total = 0;
     let settled = false;
 
-    const fail = (message: string) => {
+    const fail = (error: Error) => {
       if (settled) return;
       settled = true;
       child.kill('SIGKILL');
-      reject(new InvalidMediaError(message));
+      reject(error);
     };
 
-    const timeout = setTimeout(() => fail(`audio conversion timed out after ${timeoutMs}ms`), timeoutMs);
+    const timeout = setTimeout(() => fail(new InvalidMediaError(`audio conversion timed out after ${timeoutMs}ms`)), timeoutMs);
     timeout.unref();
 
     child.stdout.on('data', (chunk: Buffer) => {
@@ -61,7 +65,7 @@ export function transcodeToOpus(input: Buffer, { lpcm, timeoutMs = TRANSCODE_TIM
       // A crafted input can decode to far more than it weighs, so stop at the same cap the
       // inbound bytes were held to rather than buffering whatever ffmpeg produces.
       if (total > MAX_OUTBOUND_MEDIA_BYTES) {
-        fail(`converted audio exceeds the ${MAX_OUTBOUND_MEDIA_BYTES}-byte limit`);
+        fail(new InvalidMediaError(`converted audio exceeds the ${MAX_OUTBOUND_MEDIA_BYTES}-byte limit`));
         return;
       }
       chunks.push(chunk);
@@ -72,7 +76,7 @@ export function transcodeToOpus(input: Buffer, { lpcm, timeoutMs = TRANSCODE_TIM
       stderr = (stderr + chunk.toString()).slice(-2000);
     });
 
-    child.once('error', (err) => fail(`audio conversion failed to start: ${err.message}`));
+    child.once('error', (err) => fail(new Error(`audio conversion failed to start: ${err.message}`)));
 
     child.once('close', (code) => {
       clearTimeout(timeout);

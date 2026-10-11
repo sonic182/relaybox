@@ -19,8 +19,10 @@ describe('network target checks', () => {
     // Cloud instance metadata is the address the guard exists for.
     expect(isForbiddenIp('169.254.169.254', true)).toBe(true);
     expect(isForbiddenIp('::ffff:169.254.169.254', true)).toBe(true);
-    // Loopback is handled by its own check, not by opting into private targets.
-    expect(isForbiddenHostname('localhost', true)).toBe(true);
+    expect(isForbiddenHostname('localhost', true)).toBe(false);
+    expect(isForbiddenIp('127.0.0.1', true)).toBe(false);
+    expect(isForbiddenHostname('localhost')).toBe(true);
+    expect(isForbiddenIp('127.0.0.1')).toBe(true);
   });
 
   it('identifies hosts on the local network', () => {

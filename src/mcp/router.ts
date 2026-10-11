@@ -10,7 +10,7 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { secretEquals } from '../auth';
 import { API_KEY, MCP_INLINE_MEDIA_BYTES } from '../config';
 import { apiErrorBody } from '../contracts/evolution';
-import { createMcpServer, type McpDependencies } from './server';
+import { createMcpServer, createMcpTools, selectMcpTools, type McpDependencies } from './server';
 
 /** Room for the largest inline media payload plus the JSON-RPC envelope around it. */
 const MCP_JSON_LIMIT = Math.ceil((MCP_INLINE_MEDIA_BYTES * 4) / 3) + 64 * 1024;
@@ -33,6 +33,7 @@ export type McpRouterOptions = {
 
 /** Mountable MCP router: host/origin guards, Bearer auth, then the Streamable HTTP handler. */
 export function createMcpRouter(deps: McpDependencies, { allowedHosts = [] }: McpRouterOptions = {}): Router {
+  selectMcpTools(createMcpTools(deps), deps.toolFilter);
   const handler = createMcpHandler(() => createMcpServer(deps), {
     onerror: (error) => deps.logger.warn({ err: error }, 'mcp request failed'),
   });

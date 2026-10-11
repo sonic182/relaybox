@@ -1,4 +1,5 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { JsonObject } from '@zenstackhq/orm';
 import type { Logger } from 'pino';
@@ -166,9 +167,15 @@ export function createMessageService({ db, outbox, logger }: MessageServiceOptio
     mkdirSync(directory, { recursive: true });
     // Only the filename is stored: the instance folder is resolved on serve, so a
     // renamed instance keeps its row valid (the folder moves with the rename).
-    const path = `${message.key.id}${mediaExtension(media.mimetype)}`;
-    writeFileSync(join(directory, path), media.buffer);
-    await db.media.create({ data: { messageId, path, mimetype: media.mimetype, size: media.buffer.length } });
+    const path = `${randomUUID()}${mediaExtension(media.mimetype)}`;
+    const file = join(directory, path);
+    writeFileSync(file, media.buffer, { flag: 'wx' });
+    try {
+      await db.media.create({ data: { messageId, path, mimetype: media.mimetype, size: media.buffer.length } });
+    } catch (err) {
+      rmSync(file, { force: true });
+      throw err;
+    }
   }
 
   async function projectChat(instance: Instance, message: InboundMessage): Promise<void> {

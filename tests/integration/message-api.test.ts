@@ -51,6 +51,7 @@ describe('POST /message/sendText/:instanceName', () => {
     ['a jid with no local part', { number: '@', text: 'hola' }],
     ['a negative delay', { number: '5511888888888', text: 'hola', delay: -1 }],
     ['a fractional delay', { number: '5511888888888', text: 'hola', delay: 1.5 }],
+    ['a delay over five minutes', { number: '5511888888888', text: 'hola', delay: 300_001 }],
     ['an unknown presence', { number: '5511888888888', text: 'hola', presence: 'dancing' }],
     ['a quote without its key ID', { number: '5511888888888', text: 'hola', quoted: { key: {} } }],
     ['non-array mentions', { number: '5511888888888', text: 'hola', mentioned: '5511888888888' }],

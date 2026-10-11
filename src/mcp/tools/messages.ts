@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { MCP_INLINE_MEDIA_BYTES } from '../../config';
 import { badRequest } from '../../api/errors';
-import { readSendAudio, readSendMedia, readSendText, sendOptions, MEDIA_TYPES, PRESENCES } from '../../api/inputs';
+import { readSendAudio, readSendMedia, readSendText, sendOptions, MAX_DELAY_MS, MEDIA_TYPES, PRESENCES } from '../../api/inputs';
 import { requireApiInstance } from '../../api/instances';
 import type { InstanceService } from '../../instances';
 import type { SendService } from '../../sends';
@@ -26,7 +26,7 @@ const sendContext = {
 };
 
 const sendOptionsShape = {
-  delay: z.number().int().nonnegative().optional().describe('Simulate presence for this many milliseconds.'),
+  delay: z.number().int().nonnegative().max(MAX_DELAY_MS).optional().describe('Simulate presence for this many milliseconds.'),
   presence: z.enum(PRESENCES).optional(),
 };
 

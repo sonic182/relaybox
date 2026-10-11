@@ -37,8 +37,8 @@ const MAX_SIGNATURE_SECRET_LENGTH = 512;
 const HEADER_NAME = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
 
 /**
- * Development accepts any http(s) callback. Otherwise: https, or http on loopback,
- * and never a private or link-local host.
+ * Development accepts any http(s) callback. Otherwise: https, never a loopback, private
+ * or link-local host, and http only to loopback or private hosts once those are allowed.
  *
  * Hostname-only check: a public name that resolves to a private address still passes
  * here, which is why the delivery worker re-checks the resolved address (src/delivery.ts).
@@ -62,15 +62,15 @@ export function validateCallbackUrl(
 
   // A consumer on the LAN has no public name to get a certificate for, so opting into
   // private targets has to permit plain http to them as well.
-  const plaintextAllowed = isLoopbackHost(url.hostname) || (allowPrivate && isPrivateHost(url.hostname));
+  const plaintextAllowed = allowPrivate && (isLoopbackHost(url.hostname) || isPrivateHost(url.hostname));
   if (url.protocol === 'http:' && !plaintextAllowed) {
     return ['"url" must use https outside local development'];
   }
-  if (!isLoopbackHost(url.hostname) && isForbiddenHostname(url.hostname, allowPrivate)) {
+  if (isForbiddenHostname(url.hostname, allowPrivate)) {
     return [
       allowPrivate
         ? '"url" must not target a link-local address'
-        : '"url" must not target a private or link-local address',
+        : '"url" must not target a private, loopback or link-local address',
     ];
   }
 
@@ -271,6 +271,7 @@ export type WebhookService = {
   instanceExists(instanceName: string): Promise<boolean>;
   /** Most recent delivery attempts first; empty for an unknown instance. */
   listDeliveries(instanceName: string, limit?: number): Promise<DeliveryHistoryEntry[]>;
+  findRejectedTargets(): Promise<{ instanceName: string; errors: string[] }[]>;
 };
 
 type WebhookServiceOptions = {
@@ -301,6 +302,17 @@ export function createWebhookService({
   };
 
   return {
+    async findRejectedTargets() {
+      const configs = await db.webhookConfig.findMany({
+        where: { enabled: true },
+        select: { url: true, instance: { select: { name: true } } },
+      });
+      return configs.flatMap(({ url, instance }) => {
+        const errors = validateCallbackUrl(url, allowInsecureUrls, allowPrivateTargets);
+        return errors.length ? [{ instanceName: instance.name, errors }] : [];
+      });
+    },
+
     async instanceExists(instanceName) {
       return (await db.instanceRecord.count({ where: { name: instanceName } })) > 0;
     },

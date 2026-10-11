@@ -9,8 +9,9 @@ import { createChatTools } from '../../src/mcp/tools/chats';
 import { createInstanceTools } from '../../src/mcp/tools/instances';
 import { createMessageTools } from '../../src/mcp/tools/messages';
 import { createWebhookTools } from '../../src/mcp/tools/webhooks';
+import { createMcpTools, selectMcpTools } from '../../src/mcp/server';
 import type { McpTool, ToolResult } from '../../src/mcp/tool';
-import { createFakeChatService, createFakeInstanceService, createFakeSendService } from '../helpers';
+import { createFakeChatService, createFakeInstanceService, createFakeSendService, silentLogger } from '../helpers';
 
 function toolByName(tools: McpTool[], name: string): McpTool {
   const tool = tools.find((item) => item.name === name);
@@ -281,5 +282,40 @@ describe('chat tools', () => {
 
     const avatar = await toolByName(tools, 'get_chat_avatar').handler({ instanceName: 'acme', jid: '5511@s.whatsapp.net' });
     expect(textOf(avatar)).toContain('"url": null');
+  });
+});
+
+describe('tool selection', () => {
+  const tools = () => createMcpTools({
+    instanceService: createFakeInstanceService(),
+    chatService: createFakeChatService(),
+    sendService: createFakeSendService(),
+    controlService: fakeControl(),
+    logger: silentLogger(),
+  });
+  const names = (selected: McpTool[]) => selected.map((tool) => tool.name);
+
+  it('keeps every tool by default', () => {
+    expect(selectMcpTools(tools())).toHaveLength(tools().length);
+  });
+
+  it('drops tools that send, change or delete anything in read-only mode', () => {
+    const selected = names(selectMcpTools(tools(), { readOnly: true }));
+
+    expect(selected).toEqual(expect.arrayContaining(['list_chats', 'list_messages', 'fetch_instances']));
+    expect(selected.some((name) => name.startsWith('send_') || ['delete_instance', 'logout_instance', 'set_webhook'].includes(name))).toBe(false);
+  });
+
+  it('limits the set to an allowlist, combined with read-only mode', () => {
+    expect(names(selectMcpTools(tools(), { allow: ['list_chats', 'send_text'] }))).toEqual(['send_text', 'list_chats']);
+    expect(names(selectMcpTools(tools(), { readOnly: true, allow: ['list_chats', 'send_text'] }))).toEqual(['list_chats']);
+  });
+
+  it('rejects a combination that leaves no tools', () => {
+    expect(() => selectMcpTools(tools(), { readOnly: true, allow: ['send_text'] })).toThrow('no MCP tools');
+  });
+
+  it('rejects an allowlist naming a tool that does not exist', () => {
+    expect(() => selectMcpTools(tools(), { allow: ['list_chats', 'send_everything'] })).toThrow('send_everything');
   });
 });

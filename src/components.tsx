@@ -13,7 +13,11 @@ export function Layout({ title, children }: { title: string; children?: unknown 
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <title>{title}</title>
                 <link rel="stylesheet" href="/styles.css" />
-                <script src="https://unpkg.com/htmx.org@2"></script>
+                <script
+                    src="https://unpkg.com/htmx.org@2.0.11/dist/htmx.min.js"
+                    integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg"
+                    crossorigin="anonymous"
+                ></script>
                 {/*
                  * htmx swaps only 2xx by default, so a rendered form error would be thrown
                  * away and the user would see nothing happen. 400 is how every form here
@@ -26,11 +30,16 @@ export function Layout({ title, children }: { title: string; children?: unknown 
     { code: '204', swap: false },
     { code: '[23]..', swap: true },
     { code: '400', swap: true, error: true },
+    { code: '429', swap: true, error: true },
     { code: '[45]..', swap: false, error: true },
 ];`,
                     }}
                 ></script>
-                <script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
+                <script
+                    src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"
+                    integrity="sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k"
+                    crossorigin="anonymous"
+                ></script>
                 <script
                     dangerouslySetInnerHTML={{
                         __html: `(() => {

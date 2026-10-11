@@ -226,23 +226,22 @@ describe('createDeliveryHandler', () => {
     expect(requestImpl.mock.calls[0][0].address).toBe('8.8.8.8');
   });
 
-  it('permits a loopback callback in production, matching the configuration policy', async () => {
+  it('refuses a loopback callback unless private targets are allowed', async () => {
     const { db, instance } = await seedInstance();
     const requestImpl = fakeRequest(200);
-    const resolveHost = vi.fn();
-    const deliver = createDeliveryHandler({
-      db,
-      logger: silentLogger(),
-      requestImpl,
-      resolveHost,
-      allowInsecureUrls: false,
-    });
+    const resolveHost = vi.fn().mockResolvedValue(['127.0.0.1']);
+    const options = { db, logger: silentLogger(), requestImpl, resolveHost, allowInsecureUrls: false };
+    const loopback = job(instance.id, { url: 'http://localhost:3000/hook' });
 
-    expect(await deliver(job(instance.id, { url: 'http://localhost:3000/hook' }))).toEqual({
+    const refused = await createDeliveryHandler({ ...options, allowPrivateTargets: false })(loopback);
+    expect(refused).toMatchObject({ status: 'failed', retryable: false });
+    expect(requestImpl).not.toHaveBeenCalled();
+
+    expect(await createDeliveryHandler({ ...options, allowPrivateTargets: true })(loopback)).toEqual({
       status: 'delivered',
       responseStatus: 200,
     });
-    expect(resolveHost).not.toHaveBeenCalled();
+    expect(requestImpl.mock.calls[0][0].address).toBe('127.0.0.1');
   });
 
   it('allows a private target when development mode allows insecure urls', async () => {

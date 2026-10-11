@@ -10,11 +10,12 @@ The scope is the Baileys/WhatsApp instance workflow: send messages, configure we
 
 Webhook callback URLs must be `http` or `https` in every environment; other protocols are rejected.
 
-- **Development** (`NODE_ENV !== 'production'`): any `http` or `https` URL is accepted, so a local
+- **Development** (`NODE_ENV` is `development` or `test`): any `http` or `https` URL is accepted, so a local
   consumer on a LAN address or container hostname works without a tunnel.
-- **Otherwise**: `https` only, except `http` on loopback (`localhost`, `127.0.0.0/8`, `::1`), and
-  never a private or link-local host (RFC 1918, `169.254.0.0/16`, `fc00::/7`, `fe80::/10`,
-  `.localhost`, `.local`, `.internal`).
+- **Otherwise**: `https` only, and never a loopback, private or link-local host (`localhost`,
+  `127.0.0.0/8`, `::1`, RFC 1918, `169.254.0.0/16`, `fc00::/7`, `fe80::/10`, `.localhost`,
+  `.local`, `.internal`). `ALLOW_PRIVATE_WEBHOOK_TARGETS` permits loopback and private hosts, over
+  `http` too; link-local stays blocked.
 
 The check is on the hostname at configuration time, so a public name that resolves to a private
 address still passes. The delivery handler re-checks the resolved address immediately before each

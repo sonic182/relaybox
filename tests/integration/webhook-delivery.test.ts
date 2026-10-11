@@ -47,7 +47,7 @@ describe('webhook delivery', () => {
       const logger = silentLogger();
       const record = await db.instanceRecord.create({ data: { name: 'acme' } });
       const instance: Instance = { id: record.id, name: record.name, status: 'open' };
-      const webhooks = createWebhookService({ db, allowInsecureUrls: false });
+      const webhooks = createWebhookService({ db, allowInsecureUrls: false, allowPrivateTargets: true });
       await webhooks.setWebhook(instance.name, {
         webhook: {
           enabled: true,
@@ -71,7 +71,7 @@ describe('webhook delivery', () => {
         },
       ]);
 
-      expect(await queue.drain(createDeliveryHandler({ db, logger, allowInsecureUrls: false }))).toBe(1);
+      expect(await queue.drain(createDeliveryHandler({ db, logger, allowInsecureUrls: false, allowPrivateTargets: true }))).toBe(1);
 
       const request = await consumer.received;
       expect(request.headers).toMatchObject({

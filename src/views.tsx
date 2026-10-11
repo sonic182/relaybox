@@ -33,6 +33,10 @@ export function loginError(): string {
     return 'Invalid token';
 }
 
+export function loginThrottled(): string {
+    return 'Too many attempts; try again in a minute';
+}
+
 const STATUS_TONES: Record<InstanceStatus, Tone> = {
     connecting: 'amber',
     qr: 'sky',

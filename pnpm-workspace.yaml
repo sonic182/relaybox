@@ -1,5 +1,4 @@
 allowBuilds:
-  '@ffmpeg-installer/linux-x64': true
   '@parcel/watcher': false
   '@prisma/engines': false
   baileys: true

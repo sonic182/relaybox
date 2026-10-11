@@ -3,19 +3,22 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import type { Logger } from 'pino';
-import { requireAuth } from './auth';
-import { home, login, logout, showLogin } from './controllers/auth';
+import { requireAuth, requireSameOrigin } from './auth';
+import { home, login, logout, showLogin, tooManyLogins } from './controllers/auth';
 import { createDashboardController } from './controllers/dashboard';
 import { redoc, swaggerJson } from './controllers/documentation';
-import { LOG_FORMAT, LOG_LEVEL } from './config';
+import { LOG_FORMAT, LOG_LEVEL, TRUST_PROXY, isDevelopment } from './config';
 import { createChatsController } from './controllers/chats';
 import { createInstancesController } from './controllers/instances';
 import { createMediaController } from './controllers/media';
+import { createEventStreams } from './controllers/sse';
 import { demo, show, tick } from './controllers/ui';
 import { createWebhooksController } from './controllers/webhooks';
 import type { ChatService } from './chats';
 import type { InstanceService } from './instances';
 import { createLogger } from './logger';
+import { createRateLimit } from './rateLimit';
+import { securityHeaders } from './securityHeaders';
 import type { SendService } from './sends';
 import type { WebhookService } from './webhooks';
 import { API_PREFIXES, createApiRouter } from './api/router';
@@ -46,13 +49,17 @@ export function createApp({
   controlService,
 }: AppDependencies) {
   const app = express();
+  app.set('env', isDevelopment() ? 'development' : 'production');
+  if (TRUST_PROXY !== undefined) app.set('trust proxy', TRUST_PROXY);
   const dashboard = createDashboardController(instanceService);
-  const instances = createInstancesController(instanceService, controlService);
+  const eventStreams = createEventStreams();
+  const instances = createInstancesController(instanceService, controlService, eventStreams);
   const settings = createSettingsController(settingsService);
   const webhooks = createWebhooksController(webhookService);
-  const chats = createChatsController(chatService, instanceService);
+  const chats = createChatsController(chatService, instanceService, eventStreams);
   const media = createMediaController(chatService);
 
+  app.use(securityHeaders);
   app.use(express.static('public'));
   // Documentation is public and describes the API; it does not call any integrations.
   app.get('/swagger.json', swaggerJson);
@@ -84,7 +91,7 @@ export function createApp({
 
   app.get('/', home);
   app.get('/login', showLogin);
-  app.post('/login', login);
+  app.post('/login', requireSameOrigin, createRateLimit({ limit: 10, onLimited: tooManyLogins }), login);
   app.get('/dashboard', requireAuth, dashboard.showDashboard);
   app.get('/instances/events', requireAuth, instances.events);
   app.get('/instances', requireAuth, instances.list);
@@ -102,19 +109,19 @@ export function createApp({
   app.get('/instances/:name/chats/messages', requireAuth, chats.messages);
   app.get('/instances/:name/media/:keyId', requireAuth, chats.media);
   // Signature-authenticated counterpart for MCP: a caller fetches media without the API key.
-  app.get('/media/:instanceName/:keyId', media.byToken);
+  app.get('/media/:instanceName/:keyId', createRateLimit({ limit: 120 }), media.byToken);
   app.post('/instances/:name/chats/send', requireAuth, chats.send);
   app.get('/instances/:name/webhook', requireAuth, webhooks.show);
   app.post('/instances/:name/webhook', requireAuth, webhooks.save);
 
   // Component gallery, kept out of production builds.
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDevelopment()) {
     app.get('/ui', show);
-    app.post('/ui/demo', demo);
+    app.post('/ui/demo', requireSameOrigin, demo);
     app.get('/ui/tick', tick);
   }
 
-  app.post('/logout', logout);
+  app.post('/logout', requireSameOrigin, logout);
 
   return app;
 }

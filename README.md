@@ -15,6 +15,7 @@ webhooks. It uses Baileys for WhatsApp connections and PostgreSQL for applicatio
 
 - Node.js 24+
 - pnpm 11+
+- ffmpeg on `PATH` (or `FFMPEG_PATH`), for sending voice notes; the Docker image includes it
 - Docker, for the local PostgreSQL database
 
 ## Quick start

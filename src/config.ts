@@ -38,6 +38,8 @@ export function parseApiKey(value: string | undefined): string {
 /** The single credential: the `apikey` header for the JSON API, and the dashboard login. */
 export const API_KEY = parseApiKey(process.env.API_KEY);
 
+export const SESSION_TTL_SECONDS = parsePositiveInt('SESSION_TTL_SECONDS', process.env.SESSION_TTL_SECONDS, 7 * 24 * 60 * 60);
+
 /** Minimum severity emitted by the application logger. */
 export const LOG_LEVEL = parseLogLevel(process.env.LOG_LEVEL);
 
@@ -47,15 +49,19 @@ export const LOG_FORMAT = parseLogFormat(process.env.LOG_FORMAT);
 /** Optional directory for a JSON application log in addition to stdout. */
 export const LOG_DIRECTORY = process.env.LOG_DIRECTORY?.trim() || undefined;
 
-/**
- * Development allows any http(s) callback URL. Outside development the policy is
- * https only, except http on loopback, and never a private or link-local host.
- */
-export const ALLOW_INSECURE_WEBHOOK_URLS = process.env.NODE_ENV !== 'production';
+export function isDevelopment(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+}
 
 /**
- * Opt in to webhook targets on the local network (RFC 1918, IPv6 unique-local, `.local`
- * and `.internal` names), over plain http. Off by default: the guard exists so a stolen
+ * Development allows any http(s) callback URL. Outside development the policy is
+ * https only, and never a loopback, private or link-local host unless opted in below.
+ */
+export const ALLOW_INSECURE_WEBHOOK_URLS = isDevelopment();
+
+/**
+ * Opt in to webhook targets on this host or the local network (loopback, RFC 1918, IPv6
+ * unique-local, `.localhost`, `.local` and `.internal` names), over plain http. Off by default: the guard exists so a stolen
  * API key cannot turn the server into a probe of the network it sits in, and only the
  * operator knows whether their consumer really lives on the LAN.
  *
@@ -65,7 +71,20 @@ export const ALLOW_PRIVATE_WEBHOOK_TARGETS = ['true', '1'].includes(
   (process.env.ALLOW_PRIVATE_WEBHOOK_TARGETS ?? '').trim().toLowerCase(),
 );
 
+export function parseTrustProxy(value: string | undefined): boolean | number | string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed === 'true' || trimmed === 'false') return trimmed === 'true';
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+
+  return trimmed;
+}
+
+export const TRUST_PROXY = parseTrustProxy(process.env.TRUST_PROXY);
+
 export const SERVER_URL = process.env.SERVER_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+
+export const DELIVERY_RETENTION_DAYS = parsePositiveInt('DELIVERY_RETENTION_DAYS', process.env.DELIVERY_RETENTION_DAYS, 7);
 
 /** How many due webhook deliveries one drain sends at once. */
 export const DELIVERY_CONCURRENCY = parsePositiveInt('DELIVERY_CONCURRENCY', process.env.DELIVERY_CONCURRENCY, 4);
@@ -74,6 +93,8 @@ export const DB_URL = process.env.DB_URL;
 if (!DB_URL) {
   throw new Error('DB_URL env var is required');
 }
+
+export const FFMPEG_PATH = process.env.FFMPEG_PATH?.trim() || 'ffmpeg';
 
 /** Cap on outbound media bytes, whether fetched from a URL or decoded from base64. */
 export const MAX_OUTBOUND_MEDIA_BYTES = parsePositiveInt(
@@ -89,6 +110,15 @@ export const MAX_OUTBOUND_MEDIA_BYTES = parsePositiveInt(
 export const ENABLE_MCP_SERVER = ['true', '1'].includes(
   (process.env.ENABLE_MCP_SERVER ?? '').trim().toLowerCase(),
 );
+
+export const MCP_READ_ONLY = ['true', '1'].includes((process.env.MCP_READ_ONLY ?? '').trim().toLowerCase());
+
+export function parseMcpTools(value: string | undefined): string[] | undefined {
+  const names = (value ?? '').split(',').map((name) => name.trim()).filter(Boolean);
+  return names.length ? names : undefined;
+}
+
+export const MCP_TOOLS = parseMcpTools(process.env.MCP_TOOLS);
 
 /** Namespaces owned by existing HTTP routes, which are mounted before MCP. */
 const RESERVED_MCP_NAMESPACES = new Set([

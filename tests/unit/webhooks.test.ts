@@ -27,10 +27,8 @@ describe('validateCallbackUrl', () => {
     expect(validateCallbackUrl('file:///etc/passwd', true)).toEqual(['"url" must use http or https']);
   });
 
-  it('requires https outside development, except on loopback', () => {
+  it('requires https outside development', () => {
     expect(validateCallbackUrl('https://consumer.example/hook', false)).toEqual([]);
-    expect(validateCallbackUrl('http://localhost:3000/hook', false)).toEqual([]);
-    expect(validateCallbackUrl('http://127.0.0.1:3000/hook', false)).toEqual([]);
     expect(validateCallbackUrl('http://consumer.example/hook', false)).toEqual([
       '"url" must use https outside local development',
     ]);
@@ -46,8 +44,15 @@ describe('validateCallbackUrl', () => {
       'https://printer.local/hook',
     ]) {
       expect(validateCallbackUrl(url, false, false)).toEqual([
-        '"url" must not target a private or link-local address',
+        '"url" must not target a private, loopback or link-local address',
       ]);
+    }
+  });
+
+  it('refuses loopback targets unless private targets are allowed', () => {
+    for (const url of ['http://localhost:3000/hook', 'http://127.0.0.1:3000/hook', 'https://localhost/hook', 'https://[::1]/hook']) {
+      expect(validateCallbackUrl(url, false, false)).not.toEqual([]);
+      expect(validateCallbackUrl(url, false, true)).toEqual([]);
     }
   });
 
@@ -263,6 +268,24 @@ describe('webhook service', () => {
     await expect(
       service.setWebhook('acme', { webhook: { url: 'http://consumer.example/hook', events: [] } }),
     ).rejects.toBeInstanceOf(WebhookValidationError);
+  });
+});
+
+describe('findRejectedTargets', () => {
+  it('reports enabled webhooks whose stored url the current policy rejects, without the url', async () => {
+    const { db } = await serviceWithInstance('legacy');
+    const other = await db.instanceRecord.create({ data: { name: 'fine' } });
+    const off = await db.instanceRecord.create({ data: { name: 'off' } });
+    const legacy = await db.instanceRecord.findUniqueOrThrow({ where: { name: 'legacy' } });
+    await db.webhookConfig.create({ data: { instanceId: legacy.id, url: 'http://localhost:3000/hook', enabled: true, events: ['MESSAGES_UPSERT'] } });
+    await db.webhookConfig.create({ data: { instanceId: other.id, url: 'https://consumer.example/hook', enabled: true, events: ['MESSAGES_UPSERT'] } });
+    await db.webhookConfig.create({ data: { instanceId: off.id, url: 'http://localhost:3000/hook', enabled: false, events: ['MESSAGES_UPSERT'] } });
+
+    const strict = createWebhookService({ db, allowInsecureUrls: false, allowPrivateTargets: false });
+    expect(await strict.findRejectedTargets()).toEqual([
+      { instanceName: 'legacy', errors: ['"url" must use https outside local development'] },
+    ]);
+    expect(await createWebhookService({ db, allowInsecureUrls: false, allowPrivateTargets: true }).findRejectedTargets()).toEqual([]);
   });
 });
 

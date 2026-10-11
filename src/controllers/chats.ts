@@ -3,6 +3,7 @@ import { toSentChatMessage, type ChatService } from '../chats';
 import { isValidName, type InboundMessage, type InstanceService } from '../instances';
 import { resolveStoredMediaPath } from '../mediaAccess';
 import { sendStoredMedia } from './mediaResponse';
+import { createEventStreams, type EventStreams } from './sse';
 import { readInstanceName } from './requests';
 import { chatsPage, conversationPanel, messageTimeline } from '../views';
 
@@ -29,7 +30,11 @@ function requireChatTarget(req: Request, res: Response): { name: string; jid: st
 }
 
 /** HTML adapter for the chat browser: reads projections, and sends through the instance. */
-export function createChatsController(service: ChatService, instances: InstanceService) {
+export function createChatsController(
+  service: ChatService,
+  instances: InstanceService,
+  streams: EventStreams = createEventStreams(),
+) {
   async function show(req: Request, res: Response): Promise<void> {
     const name = readInstanceName(req, res);
     if (!name) return;
@@ -48,13 +53,7 @@ export function createChatsController(service: ChatService, instances: InstanceS
     const target = requireChatTarget(req, res);
     if (!target) return;
     const { name } = target;
-
-    res.set({
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'Content-Type': 'text/event-stream',
-    });
-    res.flushHeaders();
+    if (!streams.open(req, res)) return;
 
     const unsubscribe = instances.subscribe((event) => {
       // A receipt can arrive keyed by the LID form while the page jid is the phone

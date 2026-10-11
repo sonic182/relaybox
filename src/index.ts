@@ -1,6 +1,6 @@
 import { createApp } from './app';
 import { createControlService, createControlValidator } from './api/control';
-import { DELIVERY_CONCURRENCY, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, REMOTE_TARGET } from './config';
+import { DELIVERY_CONCURRENCY, DELIVERY_RETENTION_DAYS, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, MCP_READ_ONLY, MCP_TOOLS, REMOTE_TARGET, isDevelopment } from './config';
 import { createDb } from './db';
 import { createDeliveryWorker } from './delivery';
 import { createInstanceService } from './instances';
@@ -40,6 +40,14 @@ void pruneCompletedSends();
 const sendPruneTimer = setInterval(pruneCompletedSends, 24 * 60 * 60 * 1000);
 sendPruneTimer.unref();
 
+const compactFinishedDeliveries = () =>
+  deliveryQueue
+    .compactFinished(new Date(Date.now() - DELIVERY_RETENTION_DAYS * 24 * 60 * 60 * 1000))
+    .catch((err: unknown) => logger.error({ err }, 'failed to compact finished webhook deliveries'));
+void compactFinishedDeliveries();
+const deliveryPruneTimer = setInterval(compactFinishedDeliveries, 24 * 60 * 60 * 1000);
+deliveryPruneTimer.unref();
+
 let server: import('node:http').Server | undefined;
 let remoteClient: RemoteClient | undefined;
 let shuttingDown = false;
@@ -49,7 +57,7 @@ async function startServer(): Promise<void> {
   const controlService = createControlService({ validator, instanceService, webhookService, settingsService, logger });
   if (REMOTE_TARGET.target) remoteClient = createRemoteClient({ target: REMOTE_TARGET.target, logger, control: controlService });
   const app = createApp({ instanceService, webhookService, settingsService, sendService, chatService, logger, controlService });
-  if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_MCP === 'true') {
+  if (isDevelopment() && process.env.ENABLE_DEV_MCP === 'true') {
     const { createDevMcpRouter } = await import('./dev-mcp.js');
     app.use('/dev/mcp', createDevMcpRouter({ db, instanceService, chatService, logger }));
     logger.warn('development MCP enabled at /dev/mcp without authentication; it permits arbitrary project_eval code');
@@ -57,7 +65,7 @@ async function startServer(): Promise<void> {
   if (ENABLE_MCP_SERVER) {
     const { createMcpRouter } = await import('./mcp/router.js');
     app.use(MCP_PATH, createMcpRouter(
-      { instanceService, chatService, sendService, controlService, logger },
+      { instanceService, chatService, sendService, controlService, logger, toolFilter: { readOnly: MCP_READ_ONLY, allow: MCP_TOOLS } },
       { allowedHosts: MCP_ALLOWED_HOSTS },
     ));
     logger.warn({ path: MCP_PATH }, 'MCP server enabled with Bearer auth');
@@ -67,6 +75,14 @@ async function startServer(): Promise<void> {
     logger.info({ port }, 'server listening');
     if (!shuttingDown) remoteClient?.start();
   });
+  webhookService
+    .findRejectedTargets()
+    .then((rejected) => {
+      for (const { instanceName, errors } of rejected) {
+        logger.warn({ instance: instanceName, errors }, 'stored webhook target is no longer allowed; its deliveries will fail');
+      }
+    })
+    .catch((err: unknown) => logger.error({ err }, 'failed to check stored webhook targets'));
   instanceService.restoreInstances().catch((err: unknown) => logger.error({ err }, 'failed to restore instances'));
 }
 

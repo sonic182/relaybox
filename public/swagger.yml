@@ -1115,6 +1115,7 @@ components:
             delay:
               type: integer
               minimum: 0
+              maximum: 300000
               description: Show the presence for this many milliseconds before delivering.
             presence:
               type: string
@@ -1164,6 +1165,7 @@ components:
             delay:
               type: integer
               minimum: 0
+              maximum: 300000
             presence:
               type: string
               enum: [unavailable, available, composing, recording, paused]
@@ -1188,6 +1190,7 @@ components:
             delay:
               type: integer
               minimum: 0
+              maximum: 300000
             presence:
               type: string
               enum: [unavailable, available, composing, recording, paused]
@@ -1212,6 +1215,8 @@ components:
           type: boolean
         delay:
           type: integer
+          minimum: 0
+          maximum: 300000
         presence:
           type: string
           enum: [unavailable, available, composing, recording, paused]

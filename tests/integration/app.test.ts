@@ -25,6 +25,15 @@ describe('web app', () => {
       .expect('Invalid token');
   });
 
+  it('throttles repeated login attempts from one client', async () => {
+    const app = createTestApp();
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await request(app).post('/login').type('form').send({ token: 'invalid-token' }).expect(200);
+    }
+    await request(app).post('/login').type('form').send({ token: TEST_TOKEN }).expect(429).expect(/Too many attempts/);
+  });
+
   it('authenticates a valid login and serves the dashboard', async () => {
     const agent = request.agent(createTestApp());
 
@@ -36,7 +45,7 @@ describe('web app', () => {
       .expect('HX-Redirect', '/dashboard');
 
     expect(login.headers['set-cookie']).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^relaybox_session=[0-9a-f]{64};/)]),
+      expect.arrayContaining([expect.stringMatching(/^relaybox_session=\d+\.[0-9a-f]{64}; Max-Age=604800;/)]),
     );
     expect(String(login.headers['set-cookie'])).not.toContain(TEST_TOKEN);
     expect(login.headers['set-cookie']).toEqual(
@@ -45,6 +54,32 @@ describe('web app', () => {
 
     await agent.get('/dashboard').expect(200).expect(/No instances yet\./);
     await agent.get('/').expect(302).expect('Location', '/dashboard');
+  });
+
+  it('rejects cross-site form posts but accepts same-origin ones', async () => {
+    const agent = request.agent(createTestApp());
+    await agent.post('/login').type('form').send({ token: TEST_TOKEN }).expect(200);
+
+    await agent.post('/logout').set('Sec-Fetch-Site', 'cross-site').expect(403);
+    await agent.post('/logout').set('Sec-Fetch-Site', 'same-site').expect(403);
+    await agent.post('/logout').set('Origin', 'https://evil.example').expect(403);
+    await agent.post('/logout').set('Origin', 'null').expect(403);
+    await agent.get('/dashboard').set('Sec-Fetch-Site', 'cross-site').expect(200);
+
+    await agent.post('/logout').set('Sec-Fetch-Site', 'same-origin').expect(200);
+    await agent.post('/logout').set('Host', 'relaybox.test').set('Origin', 'https://relaybox.test').expect(200);
+    await agent.post('/login').type('form').send({ token: TEST_TOKEN }).expect(200);
+    await agent.post('/instances/acme/delete').set('Sec-Fetch-Site', 'cross-site').expect(403);
+    await request(createTestApp()).post('/login').set('Sec-Fetch-Site', 'cross-site').type('form').send({ token: TEST_TOKEN }).expect(403);
+  });
+
+  it('leaves routers mounted after the app, such as MCP, to their own origin checks', async () => {
+    const app = createTestApp();
+    app.post('/mcp', (_req, res) => {
+      res.status(204).end();
+    });
+
+    await request(app).post('/mcp').set('Sec-Fetch-Site', 'same-site').expect(204);
   });
 
   it('protects the dashboard and clears the session at logout', async () => {
@@ -117,12 +152,27 @@ describe('web app', () => {
       .expect(/redoc\.standalone\.js/);
   });
 
-  it('serves the component gallery outside production only', async () => {
+  it('sends security headers and pins third-party scripts', async () => {
+    const response = await request(createTestApp()).get('/login').expect(200);
+
+    expect(response.headers).toMatchObject({
+      'x-content-type-options': 'nosniff',
+      'x-frame-options': 'DENY',
+      'referrer-policy': 'same-origin',
+    });
+    expect(response.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(response.text).toMatch(/htmx\.org@2\.0\.11\/dist\/htmx\.min\.js" integrity="sha384-/);
+  });
+
+  it('serves the component gallery in development only', async () => {
     await request(createTestApp()).get('/ui').expect(200).expect(/Components/);
 
-    process.env.NODE_ENV = 'production';
     try {
-      await request(createTestApp()).get('/ui').expect(404);
+      for (const env of ['production', 'staging', undefined]) {
+        if (env === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = env;
+        await request(createTestApp()).get('/ui').expect(404);
+      }
     } finally {
       process.env.NODE_ENV = 'test';
     }
