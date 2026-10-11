@@ -6,6 +6,7 @@ Copy `.env.example` to `.env` before starting the app:
 | --- | --- | --- |
 | `API_KEY` | Dashboard and API credential, at least 16 characters (`openssl rand -hex 32`) | required |
 | `DB_URL` | PostgreSQL connection string | required |
+| `NODE_ENV` | `development` or `test` relaxes webhook URL checks, the session cookie's `Secure` flag, and enables `/ui` and `ENABLE_DEV_MCP`; anything else, including unset, is strict. `pnpm run dev` sets `development` | unset (strict) |
 | `PORT` | HTTP port | `3000` |
 | `SERVER_URL` | Public URL written into webhook envelopes | `http://localhost:$PORT` |
 | `DELIVERY_CONCURRENCY` | Concurrent webhook deliveries | `4` |
@@ -31,7 +32,7 @@ JSON API's `apikey` request header. Never commit `.env` or real credentials.
 
 ## Webhook targets
 
-In production, webhook URLs must use HTTPS except for loopback addresses.
+Unless `NODE_ENV` is `development` or `test`, webhook URLs must use HTTPS except for loopback addresses.
 
 Set `ALLOW_PRIVATE_WEBHOOK_TARGETS=true` when the consumer runs on your LAN — an automation
 host at `http://192.168.1.50:5678/webhook`, say. It permits RFC 1918 and IPv6 unique-local

@@ -1,6 +1,6 @@
 import { createApp } from './app';
 import { createControlService, createControlValidator } from './api/control';
-import { DELIVERY_CONCURRENCY, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, REMOTE_TARGET } from './config';
+import { DELIVERY_CONCURRENCY, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, REMOTE_TARGET, isDevelopment } from './config';
 import { createDb } from './db';
 import { createDeliveryWorker } from './delivery';
 import { createInstanceService } from './instances';
@@ -49,7 +49,7 @@ async function startServer(): Promise<void> {
   const controlService = createControlService({ validator, instanceService, webhookService, settingsService, logger });
   if (REMOTE_TARGET.target) remoteClient = createRemoteClient({ target: REMOTE_TARGET.target, logger, control: controlService });
   const app = createApp({ instanceService, webhookService, settingsService, sendService, chatService, logger, controlService });
-  if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_MCP === 'true') {
+  if (isDevelopment() && process.env.ENABLE_DEV_MCP === 'true') {
     const { createDevMcpRouter } = await import('./dev-mcp.js');
     app.use('/dev/mcp', createDevMcpRouter({ db, instanceService, chatService, logger }));
     logger.warn('development MCP enabled at /dev/mcp without authentication; it permits arbitrary project_eval code');

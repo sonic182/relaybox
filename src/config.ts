@@ -49,11 +49,15 @@ export const LOG_FORMAT = parseLogFormat(process.env.LOG_FORMAT);
 /** Optional directory for a JSON application log in addition to stdout. */
 export const LOG_DIRECTORY = process.env.LOG_DIRECTORY?.trim() || undefined;
 
+export function isDevelopment(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+}
+
 /**
  * Development allows any http(s) callback URL. Outside development the policy is
  * https only, except http on loopback, and never a private or link-local host.
  */
-export const ALLOW_INSECURE_WEBHOOK_URLS = process.env.NODE_ENV !== 'production';
+export const ALLOW_INSECURE_WEBHOOK_URLS = isDevelopment();
 
 /**
  * Opt in to webhook targets on the local network (RFC 1918, IPv6 unique-local, `.local`

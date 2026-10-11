@@ -140,12 +140,15 @@ describe('web app', () => {
       .expect(/redoc\.standalone\.js/);
   });
 
-  it('serves the component gallery outside production only', async () => {
+  it('serves the component gallery in development only', async () => {
     await request(createTestApp()).get('/ui').expect(200).expect(/Components/);
 
-    process.env.NODE_ENV = 'production';
     try {
-      await request(createTestApp()).get('/ui').expect(404);
+      for (const env of ['production', 'staging', undefined]) {
+        if (env === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = env;
+        await request(createTestApp()).get('/ui').expect(404);
+      }
     } finally {
       process.env.NODE_ENV = 'test';
     }

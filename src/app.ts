@@ -7,7 +7,7 @@ import { requireAuth, requireSameOrigin } from './auth';
 import { home, login, logout, showLogin, tooManyLogins } from './controllers/auth';
 import { createDashboardController } from './controllers/dashboard';
 import { redoc, swaggerJson } from './controllers/documentation';
-import { LOG_FORMAT, LOG_LEVEL, TRUST_PROXY } from './config';
+import { LOG_FORMAT, LOG_LEVEL, TRUST_PROXY, isDevelopment } from './config';
 import { createChatsController } from './controllers/chats';
 import { createInstancesController } from './controllers/instances';
 import { createMediaController } from './controllers/media';
@@ -47,6 +47,7 @@ export function createApp({
   controlService,
 }: AppDependencies) {
   const app = express();
+  app.set('env', isDevelopment() ? 'development' : 'production');
   if (TRUST_PROXY !== undefined) app.set('trust proxy', TRUST_PROXY);
   const dashboard = createDashboardController(instanceService);
   const instances = createInstancesController(instanceService, controlService);
@@ -111,7 +112,7 @@ export function createApp({
   app.post('/instances/:name/webhook', requireAuth, webhooks.save);
 
   // Component gallery, kept out of production builds.
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDevelopment()) {
     app.get('/ui', show);
     app.post('/ui/demo', demo);
     app.get('/ui/tick', tick);

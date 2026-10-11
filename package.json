@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.24.0",
   "scripts": {
-    "dev": "pnpm run build:css && (tailwindcss -i src/styles.css -o public/styles.css --watch & tsx watch src/index.ts </dev/null)",
+    "dev": "pnpm run build:css && (tailwindcss -i src/styles.css -o public/styles.css --watch & NODE_ENV=development tsx watch src/index.ts </dev/null)",
     "build:css": "tailwindcss -i src/styles.css -o public/styles.css",
     "build": "pnpm run build:css && tsc",
     "start": "node dist/src/index.js",
