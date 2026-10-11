@@ -41,11 +41,14 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
 COPY zenstack/migrations ./zenstack/migrations
 COPY docker ./docker
-RUN chmod +x docker/entrypoint.sh
+RUN chmod +x docker/entrypoint.sh \
+    && mkdir -p /app/media /app/sessions /app/logs \
+    && chown node:node /app/media /app/sessions /app/logs
 
 # Baileys credentials and signal keys persist here across restarts.
 VOLUME /app/sessions
 
 EXPOSE 3000
+USER node
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
 CMD ["node", "dist/src/index.js"]
