@@ -26,6 +26,7 @@ export function Layout({ title, children }: { title: string; children?: unknown 
     { code: '204', swap: false },
     { code: '[23]..', swap: true },
     { code: '400', swap: true, error: true },
+    { code: '429', swap: true, error: true },
     { code: '[45]..', swap: false, error: true },
 ];`,
                     }}

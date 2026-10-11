@@ -25,6 +25,15 @@ describe('web app', () => {
       .expect('Invalid token');
   });
 
+  it('throttles repeated login attempts from one client', async () => {
+    const app = createTestApp();
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await request(app).post('/login').type('form').send({ token: 'invalid-token' }).expect(200);
+    }
+    await request(app).post('/login').type('form').send({ token: TEST_TOKEN }).expect(429).expect(/Too many attempts/);
+  });
+
   it('authenticates a valid login and serves the dashboard', async () => {
     const agent = request.agent(createTestApp());
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseApiKey, parseMcpPath, parseNonNegativeInt, parsePositiveInt, parseRemoteTarget } from '../../src/config';
+import { parseApiKey, parseMcpPath, parseNonNegativeInt, parsePositiveInt, parseRemoteTarget, parseTrustProxy } from '../../src/config';
 
 describe('parsePositiveInt', () => {
   it('parses a positive integer and falls back when unset', () => {
@@ -12,6 +12,17 @@ describe('parsePositiveInt', () => {
     for (const value of ['0', '-1', '1.5', 'nope']) {
       expect(() => parsePositiveInt('N', value, 4)).toThrow('N must be a positive integer');
     }
+  });
+});
+
+describe('parseTrustProxy', () => {
+  it('maps booleans and hop counts, keeps address lists, and leaves blank unset', () => {
+    expect(parseTrustProxy(undefined)).toBeUndefined();
+    expect(parseTrustProxy(' ')).toBeUndefined();
+    expect(parseTrustProxy('true')).toBe(true);
+    expect(parseTrustProxy('false')).toBe(false);
+    expect(parseTrustProxy('1')).toBe(1);
+    expect(parseTrustProxy('loopback, 10.0.0.0/8')).toBe('loopback, 10.0.0.0/8');
   });
 });
 

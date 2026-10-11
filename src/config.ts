@@ -65,6 +65,17 @@ export const ALLOW_PRIVATE_WEBHOOK_TARGETS = ['true', '1'].includes(
   (process.env.ALLOW_PRIVATE_WEBHOOK_TARGETS ?? '').trim().toLowerCase(),
 );
 
+export function parseTrustProxy(value: string | undefined): boolean | number | string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed === 'true' || trimmed === 'false') return trimmed === 'true';
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+
+  return trimmed;
+}
+
+export const TRUST_PROXY = parseTrustProxy(process.env.TRUST_PROXY);
+
 export const SERVER_URL = process.env.SERVER_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
 
 /** How many due webhook deliveries one drain sends at once. */

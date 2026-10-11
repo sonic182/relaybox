@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { COOKIE_NAME, LEGACY_COOKIE_NAME, isValidSession, isValidToken, sessionToken } from '../auth';
-import { loginError, loginPage } from '../views';
+import { loginError, loginPage, loginThrottled } from '../views';
 
 export function home(req: Request, res: Response): void {
   res.redirect(isValidSession(req.cookies?.[COOKIE_NAME]) ? '/dashboard' : '/login');
@@ -29,4 +29,8 @@ export function logout(_req: Request, res: Response): void {
   res.clearCookie(COOKIE_NAME);
   res.clearCookie(LEGACY_COOKIE_NAME);
   res.set('HX-Redirect', '/login').end();
+}
+
+export function tooManyLogins(_req: Request, res: Response): void {
+  res.status(429).send(loginThrottled());
 }

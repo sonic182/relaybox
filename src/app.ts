@@ -4,10 +4,10 @@ import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import type { Logger } from 'pino';
 import { requireAuth, requireSameOrigin } from './auth';
-import { home, login, logout, showLogin } from './controllers/auth';
+import { home, login, logout, showLogin, tooManyLogins } from './controllers/auth';
 import { createDashboardController } from './controllers/dashboard';
 import { redoc, swaggerJson } from './controllers/documentation';
-import { LOG_FORMAT, LOG_LEVEL } from './config';
+import { LOG_FORMAT, LOG_LEVEL, TRUST_PROXY } from './config';
 import { createChatsController } from './controllers/chats';
 import { createInstancesController } from './controllers/instances';
 import { createMediaController } from './controllers/media';
@@ -16,6 +16,7 @@ import { createWebhooksController } from './controllers/webhooks';
 import type { ChatService } from './chats';
 import type { InstanceService } from './instances';
 import { createLogger } from './logger';
+import { createRateLimit } from './rateLimit';
 import type { SendService } from './sends';
 import type { WebhookService } from './webhooks';
 import { API_PREFIXES, createApiRouter } from './api/router';
@@ -46,6 +47,7 @@ export function createApp({
   controlService,
 }: AppDependencies) {
   const app = express();
+  if (TRUST_PROXY !== undefined) app.set('trust proxy', TRUST_PROXY);
   const dashboard = createDashboardController(instanceService);
   const instances = createInstancesController(instanceService, controlService);
   const settings = createSettingsController(settingsService);
@@ -85,7 +87,7 @@ export function createApp({
 
   app.get('/', home);
   app.get('/login', showLogin);
-  app.post('/login', login);
+  app.post('/login', createRateLimit({ limit: 10, onLimited: tooManyLogins }), login);
   app.get('/dashboard', requireAuth, dashboard.showDashboard);
   app.get('/instances/events', requireAuth, instances.events);
   app.get('/instances', requireAuth, instances.list);
@@ -103,7 +105,7 @@ export function createApp({
   app.get('/instances/:name/chats/messages', requireAuth, chats.messages);
   app.get('/instances/:name/media/:keyId', requireAuth, chats.media);
   // Signature-authenticated counterpart for MCP: a caller fetches media without the API key.
-  app.get('/media/:instanceName/:keyId', media.byToken);
+  app.get('/media/:instanceName/:keyId', createRateLimit({ limit: 120 }), media.byToken);
   app.post('/instances/:name/chats/send', requireAuth, chats.send);
   app.get('/instances/:name/webhook', requireAuth, webhooks.show);
   app.post('/instances/:name/webhook', requireAuth, webhooks.save);

@@ -13,6 +13,7 @@ Copy `.env.example` to `.env` before starting the app:
 | `LOG_LEVEL` | Minimum log level | `info` |
 | `LOG_FORMAT` | Console log format | `logfmt` |
 | `LOG_DIRECTORY` | Optional directory for JSON application logs | unset |
+| `TRUST_PROXY` | Express `trust proxy` behind a reverse proxy (`true`, a hop count, or addresses); login and media rate limits then key on the client address | unset |
 | `ALLOW_PRIVATE_WEBHOOK_TARGETS` | Permit webhook callbacks on the local network, over plain http | `false` |
 | `REMOTE_SERVER_URL` | Outbound `wss://` URL for remote control (`ws://` only for loopback/private hosts) | unset |
 | `REMOTE_SERVER_TOKEN` | Bearer token sent to `REMOTE_SERVER_URL`; required when it is set | unset |
