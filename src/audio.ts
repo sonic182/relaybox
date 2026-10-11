@@ -1,6 +1,5 @@
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { spawn } from 'node:child_process';
-import { MAX_OUTBOUND_MEDIA_BYTES } from './config';
+import { FFMPEG_PATH, MAX_OUTBOUND_MEDIA_BYTES } from './config';
 import { InvalidMediaError } from './mediaFetch';
 
 export type TranscodeOptions = {
@@ -12,12 +11,16 @@ export type TranscodeOptions = {
 /** A voice note that takes this long to convert is a payload we should refuse, not wait on. */
 const TRANSCODE_TIMEOUT_MS = 30_000;
 
+const INPUT_FORMATS = 'ogg,mp3,mov,matroska,wav,aac,flac,amr';
+
 /**
  * Encodes arbitrary audio as the ogg/opus WhatsApp expects for a push-to-talk note, with the
  * same settings the reference passes fluent-ffmpeg so the result plays back identically.
  */
 export function transcodeToOpus(input: Buffer, { lpcm, timeoutMs = TRANSCODE_TIMEOUT_MS }: TranscodeOptions = {}): Promise<Buffer> {
   const args = [
+    '-protocol_whitelist', 'pipe',
+    '-format_whitelist', lpcm ? 's16le' : INPUT_FORMATS,
     ...(lpcm ? ['-f', 's16le', '-ar', '24000', '-ac', '1'] : []),
     '-i', 'pipe:0',
     '-f', 'ogg',
@@ -40,7 +43,7 @@ export function transcodeToOpus(input: Buffer, { lpcm, timeoutMs = TRANSCODE_TIM
   ];
 
   return new Promise<Buffer>((resolve, reject) => {
-    const child = spawn(ffmpegPath.path, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = spawn(FFMPEG_PATH, args, { stdio: ['pipe', 'pipe', 'pipe'] });
 
     const chunks: Buffer[] = [];
     let total = 0;

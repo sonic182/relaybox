@@ -35,6 +35,19 @@ describe('transcodeToOpus', () => {
     await expect(transcodeToOpus(Buffer.from('not audio at all'))).rejects.toBeInstanceOf(InvalidMediaError);
   });
 
+  it('refuses a decodable format outside the input whitelist', async () => {
+    const samples = Buffer.alloc(16000);
+    const header = Buffer.alloc(24);
+    header.write('.snd', 0);
+    header.writeUInt32BE(24, 4);
+    header.writeUInt32BE(samples.byteLength, 8);
+    header.writeUInt32BE(3, 12);
+    header.writeUInt32BE(8000, 16);
+    header.writeUInt32BE(1, 20);
+
+    await expect(transcodeToOpus(Buffer.concat([header, samples]))).rejects.toBeInstanceOf(InvalidMediaError);
+  });
+
   it('gives up on a payload that will not convert in time', async () => {
     await expect(transcodeToOpus(wav(48000), { timeoutMs: 1 })).rejects.toThrow(/timed out/);
   });

@@ -28,6 +28,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN corepack enable && corepack install --global pnpm@11.24.0
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod \

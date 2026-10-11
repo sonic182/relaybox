@@ -94,6 +94,8 @@ if (!DB_URL) {
   throw new Error('DB_URL env var is required');
 }
 
+export const FFMPEG_PATH = process.env.FFMPEG_PATH?.trim() || 'ffmpeg';
+
 /** Cap on outbound media bytes, whether fetched from a URL or decoded from base64. */
 export const MAX_OUTBOUND_MEDIA_BYTES = parsePositiveInt(
   'MAX_OUTBOUND_MEDIA_BYTES',

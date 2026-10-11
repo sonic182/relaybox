@@ -28,7 +28,6 @@
   "license": "MIT",
   "description": "Self-hosted WhatsApp bridge with a dashboard, an Evolution-compatible JSON API, MCP tools, and outbound webhooks",
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@modelcontextprotocol/express": "^2.0.2",
     "@modelcontextprotocol/node": "^2.1.1",
     "@modelcontextprotocol/server": "^2.3.0",

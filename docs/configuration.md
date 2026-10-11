@@ -11,6 +11,7 @@ Copy `.env.example` to `.env` before starting the app:
 | `SERVER_URL` | Public URL written into webhook envelopes | `http://localhost:$PORT` |
 | `DELIVERY_CONCURRENCY` | Concurrent webhook deliveries | `4` |
 | `DELIVERY_RETENTION_DAYS` | Days to keep delivered and failed webhook delivery rows; pruned daily | `7` |
+| `FFMPEG_PATH` | ffmpeg binary used to transcode voice notes | `ffmpeg` (from `PATH`) |
 | `MAX_OUTBOUND_MEDIA_BYTES` | Largest outbound media file, fetched from a URL or decoded from base64 | `20971520` |
 | `LOG_LEVEL` | Minimum log level | `info` |
 | `LOG_FORMAT` | Console log format | `logfmt` |
