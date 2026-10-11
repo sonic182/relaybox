@@ -34,7 +34,7 @@ export function requireLoopbackPeer(req: Request, res: Response, next: NextFunct
  */
 export function createDevMcpRouter(dependencies: DevMcpDependencies): Router {
   const handler = createMcpHandler(() => {
-    const server = new McpServer({ name: 'relaybox-dev', version: '0.1.0' });
+    const server = new McpServer({ name: 'relaybox-dev', version: '0.2.0' });
 
     server.registerTool(
       'runtime_info',

@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] 2026-10-11
+
 ### Security
 - Inbound media is stored under a random file name instead of the sender-chosen message id, which allowed writing outside the media directory or overwriting another chat's file.
 - The development MCP endpoint (`ENABLE_DEV_MCP`) only accepts loopback connections, and the `relaybox-dev` compose service binds to `127.0.0.1`. It no longer works through Docker port publishing; run `pnpm run dev` on the host to use it.
@@ -34,5 +36,6 @@ First tagged release.
 - PostgreSQL persistence through ZenStack, with committed migrations.
 - Dockerfile and `docker-compose.yml` setup.
 
-[Unreleased]: https://github.com/sonic182/relaybox/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/sonic182/relaybox/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/sonic182/relaybox/compare/0.1.0..0.2.0
 [0.1.0]: https://github.com/sonic182/relaybox/compare/b3c72c1..0.1.0
