@@ -1,0 +1,4 @@
+interface:
+  display_name: "New Release"
+  short_description: "Bump the version, update the changelog and tag a release"
+  default_prompt: "Use $new-release to cut the next Relaybox release."
