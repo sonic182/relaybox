@@ -78,5 +78,16 @@ git tag -a X.Y.Z -m "X.Y.Z"
 ```
 
 Committing and tagging locally is fine once the user has asked for the release. Pushing the
-branch or tag, and creating a GitHub release, publish it: ask first, then
-`git push origin main X.Y.Z`.
+branch or tag publishes it: ask first, then `git push origin main X.Y.Z`.
+
+## 6. GitHub release
+
+After the tag is pushed, ask whether to create a GitHub release; do not create one unasked.
+If the user agrees, use the tag's `CHANGELOG.md` section as the notes:
+
+```bash
+awk '/^## \[X\.Y\.Z\]/{f=1;next} /^## \[|^\[Unreleased\]:/{if(f)exit} f' CHANGELOG.md > notes.md
+gh release create X.Y.Z --title "X.Y.Z" --notes-file notes.md --verify-tag
+```
+
+Write `notes.md` to a temporary location, not the repository.
