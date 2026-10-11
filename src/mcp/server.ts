@@ -19,6 +19,12 @@ export type McpDependencies = {
   sendService: SendService;
   controlService: ControlService;
   logger: Logger;
+  toolFilter?: McpToolFilter;
+};
+
+export type McpToolFilter = {
+  readOnly?: boolean;
+  allow?: string[];
 };
 
 /** The full tool list, in the order clients will see it. */
@@ -30,6 +36,13 @@ export function createMcpTools(deps: McpDependencies): McpTool[] {
     ...createMessageTools(deps.instanceService, deps.sendService),
     ...createChatTools(deps.instanceService, deps.sendService, deps.chatService),
   ];
+}
+
+export function selectMcpTools(tools: McpTool[], { readOnly = false, allow }: McpToolFilter = {}): McpTool[] {
+  const unknown = allow?.filter((name) => !tools.some((tool) => tool.name === name)) ?? [];
+  if (unknown.length) throw new Error(`MCP_TOOLS names unknown tools: ${unknown.join(', ')}`);
+
+  return tools.filter((tool) => (!readOnly || tool.readOnly) && (!allow || allow.includes(tool.name)));
 }
 
 /**
@@ -77,6 +90,6 @@ Side effects: send_* and update_message deliver real messages to real people and
 /** Builds a fresh server per connection, as `createMcpHandler` expects a factory. */
 export function createMcpServer(deps: McpDependencies): McpServer {
   const server = new McpServer({ name: 'relaybox', version: '0.1.0' }, { instructions: MCP_INSTRUCTIONS });
-  for (const tool of createMcpTools(deps)) register(server, tool, deps.logger);
+  for (const tool of selectMcpTools(createMcpTools(deps), deps.toolFilter)) register(server, tool, deps.logger);
   return server;
 }

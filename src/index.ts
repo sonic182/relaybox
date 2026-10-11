@@ -1,6 +1,6 @@
 import { createApp } from './app';
 import { createControlService, createControlValidator } from './api/control';
-import { DELIVERY_CONCURRENCY, DELIVERY_RETENTION_DAYS, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, REMOTE_TARGET, isDevelopment } from './config';
+import { DELIVERY_CONCURRENCY, DELIVERY_RETENTION_DAYS, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, MCP_READ_ONLY, MCP_TOOLS, REMOTE_TARGET, isDevelopment } from './config';
 import { createDb } from './db';
 import { createDeliveryWorker } from './delivery';
 import { createInstanceService } from './instances';
@@ -65,7 +65,7 @@ async function startServer(): Promise<void> {
   if (ENABLE_MCP_SERVER) {
     const { createMcpRouter } = await import('./mcp/router.js');
     app.use(MCP_PATH, createMcpRouter(
-      { instanceService, chatService, sendService, controlService, logger },
+      { instanceService, chatService, sendService, controlService, logger, toolFilter: { readOnly: MCP_READ_ONLY, allow: MCP_TOOLS } },
       { allowedHosts: MCP_ALLOWED_HOSTS },
     ));
     logger.warn({ path: MCP_PATH }, 'MCP server enabled with Bearer auth');

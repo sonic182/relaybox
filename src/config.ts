@@ -109,6 +109,15 @@ export const ENABLE_MCP_SERVER = ['true', '1'].includes(
   (process.env.ENABLE_MCP_SERVER ?? '').trim().toLowerCase(),
 );
 
+export const MCP_READ_ONLY = ['true', '1'].includes((process.env.MCP_READ_ONLY ?? '').trim().toLowerCase());
+
+export function parseMcpTools(value: string | undefined): string[] | undefined {
+  const names = (value ?? '').split(',').map((name) => name.trim()).filter(Boolean);
+  return names.length ? names : undefined;
+}
+
+export const MCP_TOOLS = parseMcpTools(process.env.MCP_TOOLS);
+
 /** Namespaces owned by existing HTTP routes, which are mounted before MCP. */
 const RESERVED_MCP_NAMESPACES = new Set([
   'instance', 'message', 'webhook', 'chat', 'instances', 'media',

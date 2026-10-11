@@ -24,6 +24,8 @@ Copy `.env.example` to `.env` before starting the app:
 | `ENABLE_MCP_SERVER` | Enable the authenticated MCP server | `false` |
 | `MCP_PATH` | Non-root literal MCP mount path (no trailing slash; outside existing HTTP route namespaces) | `/mcp` |
 | `MCP_ALLOWED_HOSTS` | Allowed Host/Origin hostnames (no scheme or port); unset restricts MCP to localhost | unset |
+| `MCP_READ_ONLY` | Register only MCP tools that change nothing (see [`mcp.md`](mcp.md#untrusted-content-and-limiting-tools)) | `false` |
+| `MCP_TOOLS` | Comma-separated allowlist of MCP tool names; unknown names stop startup | unset (all tools) |
 | `MCP_INLINE_MEDIA_BYTES` | Largest inline base64 media payload MCP tools accept or return (`0` disables) | `1048576` |
 | `MCP_MEDIA_BASE_URL` | Base URL of the signed media links MCP tools return | `SERVER_URL` |
 | `MCP_MEDIA_URL_TTL` | Lifetime of a signed media URL, in seconds | `300` |
