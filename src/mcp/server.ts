@@ -42,7 +42,10 @@ export function selectMcpTools(tools: McpTool[], { readOnly = false, allow }: Mc
   const unknown = allow?.filter((name) => !tools.some((tool) => tool.name === name)) ?? [];
   if (unknown.length) throw new Error(`MCP_TOOLS names unknown tools: ${unknown.join(', ')}`);
 
-  return tools.filter((tool) => (!readOnly || tool.readOnly) && (!allow || allow.includes(tool.name)));
+  const selected = tools.filter((tool) => (!readOnly || tool.readOnly) && (!allow || allow.includes(tool.name)));
+  if (!selected.length) throw new Error('MCP_READ_ONLY and MCP_TOOLS leave no MCP tools enabled');
+
+  return selected;
 }
 
 /**

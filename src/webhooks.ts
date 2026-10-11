@@ -271,6 +271,7 @@ export type WebhookService = {
   instanceExists(instanceName: string): Promise<boolean>;
   /** Most recent delivery attempts first; empty for an unknown instance. */
   listDeliveries(instanceName: string, limit?: number): Promise<DeliveryHistoryEntry[]>;
+  findRejectedTargets(): Promise<{ instanceName: string; errors: string[] }[]>;
 };
 
 type WebhookServiceOptions = {
@@ -301,6 +302,17 @@ export function createWebhookService({
   };
 
   return {
+    async findRejectedTargets() {
+      const configs = await db.webhookConfig.findMany({
+        where: { enabled: true },
+        select: { url: true, instance: { select: { name: true } } },
+      });
+      return configs.flatMap(({ url, instance }) => {
+        const errors = validateCallbackUrl(url, allowInsecureUrls, allowPrivateTargets);
+        return errors.length ? [{ instanceName: instance.name, errors }] : [];
+      });
+    },
+
     async instanceExists(instanceName) {
       return (await db.instanceRecord.count({ where: { name: instanceName } })) > 0;
     },

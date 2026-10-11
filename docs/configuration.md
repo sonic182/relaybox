@@ -6,11 +6,11 @@ Copy `.env.example` to `.env` before starting the app:
 | --- | --- | --- |
 | `API_KEY` | Dashboard and API credential, at least 16 characters (`openssl rand -hex 32`) | required |
 | `DB_URL` | PostgreSQL connection string | required |
-| `NODE_ENV` | `development` or `test` relaxes webhook URL checks, the session cookie's `Secure` flag, and enables `/ui` and `ENABLE_DEV_MCP`; anything else, including unset, is strict. `pnpm run dev` sets `development` | unset (strict) |
+| `NODE_ENV` | `development` or `test` relaxes webhook URL checks, the session cookie's `Secure` flag, and enables `/ui` and `ENABLE_DEV_MCP`; anything else, including unset, is strict, and the dashboard then needs HTTPS or `localhost` for its `Secure` cookie. `pnpm run dev` sets `development` | unset (strict) |
 | `PORT` | HTTP port | `3000` |
 | `SERVER_URL` | Public URL written into webhook envelopes | `http://localhost:$PORT` |
 | `DELIVERY_CONCURRENCY` | Concurrent webhook deliveries | `4` |
-| `DELIVERY_RETENTION_DAYS` | Days before the payload of a delivered or failed webhook delivery is cleared (daily); the row stays so its dedupe key keeps working | `7` |
+| `DELIVERY_RETENTION_DAYS` | Days before the payload of a delivered or failed webhook delivery is cleared (daily); the row, URL and last error stay so its dedupe key keeps working | `7` |
 | `FFMPEG_PATH` | ffmpeg binary used to transcode voice notes | `ffmpeg` (from `PATH`) |
 | `MAX_OUTBOUND_MEDIA_BYTES` | Largest outbound media file, fetched from a URL or decoded from base64 | `20971520` |
 | `LOG_LEVEL` | Minimum log level | `info` |
@@ -26,7 +26,7 @@ Copy `.env.example` to `.env` before starting the app:
 | `MCP_PATH` | Non-root literal MCP mount path (no trailing slash; outside existing HTTP route namespaces) | `/mcp` |
 | `MCP_ALLOWED_HOSTS` | Allowed Host/Origin hostnames (no scheme or port); unset restricts MCP to localhost | unset |
 | `MCP_READ_ONLY` | Register only MCP tools that change nothing (see [`mcp.md`](mcp.md#untrusted-content-and-limiting-tools)) | `false` |
-| `MCP_TOOLS` | Comma-separated allowlist of MCP tool names; unknown names stop startup | unset (all tools) |
+| `MCP_TOOLS` | Comma-separated allowlist of MCP tool names; unknown names, or a combination with `MCP_READ_ONLY` that leaves no tools, stop startup | unset (all tools) |
 | `MCP_INLINE_MEDIA_BYTES` | Largest inline base64 media payload MCP tools accept or return (`0` disables) | `1048576` |
 | `MCP_MEDIA_BASE_URL` | Base URL of the signed media links MCP tools return | `SERVER_URL` |
 | `MCP_MEDIA_URL_TTL` | Lifetime of a signed media URL, in seconds | `300` |

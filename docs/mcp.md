@@ -60,7 +60,7 @@ Narrow the tool set when the agent does not need to act:
   `list_messages` and `get_chat_avatar`.
 - `MCP_TOOLS` is a comma-separated allowlist of tool names, for example
   `MCP_TOOLS=list_chats,list_messages,get_media`. An unknown name stops the server at startup.
-  With `MCP_READ_ONLY` as well, a tool must pass both.
+  With `MCP_READ_ONLY` as well, a tool must pass both, and at least one must remain.
 
 Keep a human confirming sends when the agent also reads chats from people you do not trust.
 

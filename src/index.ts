@@ -75,6 +75,14 @@ async function startServer(): Promise<void> {
     logger.info({ port }, 'server listening');
     if (!shuttingDown) remoteClient?.start();
   });
+  webhookService
+    .findRejectedTargets()
+    .then((rejected) => {
+      for (const { instanceName, errors } of rejected) {
+        logger.warn({ instance: instanceName, errors }, 'stored webhook target is no longer allowed; its deliveries will fail');
+      }
+    })
+    .catch((err: unknown) => logger.error({ err }, 'failed to check stored webhook targets'));
   instanceService.restoreInstances().catch((err: unknown) => logger.error({ err }, 'failed to restore instances'));
 }
 

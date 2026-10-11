@@ -311,6 +311,10 @@ describe('tool selection', () => {
     expect(names(selectMcpTools(tools(), { readOnly: true, allow: ['list_chats', 'send_text'] }))).toEqual(['list_chats']);
   });
 
+  it('rejects a combination that leaves no tools', () => {
+    expect(() => selectMcpTools(tools(), { readOnly: true, allow: ['send_text'] })).toThrow('no MCP tools');
+  });
+
   it('rejects an allowlist naming a tool that does not exist', () => {
     expect(() => selectMcpTools(tools(), { allow: ['list_chats', 'send_everything'] })).toThrow('send_everything');
   });

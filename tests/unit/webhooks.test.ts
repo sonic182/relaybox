@@ -271,6 +271,24 @@ describe('webhook service', () => {
   });
 });
 
+describe('findRejectedTargets', () => {
+  it('reports enabled webhooks whose stored url the current policy rejects, without the url', async () => {
+    const { db } = await serviceWithInstance('legacy');
+    const other = await db.instanceRecord.create({ data: { name: 'fine' } });
+    const off = await db.instanceRecord.create({ data: { name: 'off' } });
+    const legacy = await db.instanceRecord.findUniqueOrThrow({ where: { name: 'legacy' } });
+    await db.webhookConfig.create({ data: { instanceId: legacy.id, url: 'http://localhost:3000/hook', enabled: true, events: ['MESSAGES_UPSERT'] } });
+    await db.webhookConfig.create({ data: { instanceId: other.id, url: 'https://consumer.example/hook', enabled: true, events: ['MESSAGES_UPSERT'] } });
+    await db.webhookConfig.create({ data: { instanceId: off.id, url: 'http://localhost:3000/hook', enabled: false, events: ['MESSAGES_UPSERT'] } });
+
+    const strict = createWebhookService({ db, allowInsecureUrls: false, allowPrivateTargets: false });
+    expect(await strict.findRejectedTargets()).toEqual([
+      { instanceName: 'legacy', errors: ['"url" must use https outside local development'] },
+    ]);
+    expect(await createWebhookService({ db, allowInsecureUrls: false, allowPrivateTargets: true }).findRejectedTargets()).toEqual([]);
+  });
+});
+
 describe('listDeliveries', () => {
   // A callback url can carry a token in its path, and the payload carries message
   // content and the envelope apikey. Neither may reach a caller.
