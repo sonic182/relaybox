@@ -38,8 +38,11 @@ export function isValidSession(candidate: string | undefined, now = Date.now()):
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (isValidSession(req.cookies?.[COOKIE_NAME])) return next();
-  res.redirect('/login');
+  if (!isValidSession(req.cookies?.[COOKIE_NAME])) {
+    res.redirect('/login');
+    return;
+  }
+  requireSameOrigin(req, res, next);
 }
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);

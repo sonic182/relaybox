@@ -88,11 +88,10 @@ export function createApp({
 
   // Evolution-compatible JSON API: its own apikey auth and error format.
   app.use(API_PREFIXES, createApiRouter({ instanceService, chatService, sendService, logger, controlService }));
-  app.use(requireSameOrigin);
 
   app.get('/', home);
   app.get('/login', showLogin);
-  app.post('/login', createRateLimit({ limit: 10, onLimited: tooManyLogins }), login);
+  app.post('/login', requireSameOrigin, createRateLimit({ limit: 10, onLimited: tooManyLogins }), login);
   app.get('/dashboard', requireAuth, dashboard.showDashboard);
   app.get('/instances/events', requireAuth, instances.events);
   app.get('/instances', requireAuth, instances.list);
@@ -118,11 +117,11 @@ export function createApp({
   // Component gallery, kept out of production builds.
   if (isDevelopment()) {
     app.get('/ui', show);
-    app.post('/ui/demo', demo);
+    app.post('/ui/demo', requireSameOrigin, demo);
     app.get('/ui/tick', tick);
   }
 
-  app.post('/logout', logout);
+  app.post('/logout', requireSameOrigin, logout);
 
   return app;
 }

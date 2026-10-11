@@ -68,6 +68,18 @@ describe('web app', () => {
 
     await agent.post('/logout').set('Sec-Fetch-Site', 'same-origin').expect(200);
     await agent.post('/logout').set('Host', 'relaybox.test').set('Origin', 'https://relaybox.test').expect(200);
+    await agent.post('/login').type('form').send({ token: TEST_TOKEN }).expect(200);
+    await agent.post('/instances/acme/delete').set('Sec-Fetch-Site', 'cross-site').expect(403);
+    await request(createTestApp()).post('/login').set('Sec-Fetch-Site', 'cross-site').type('form').send({ token: TEST_TOKEN }).expect(403);
+  });
+
+  it('leaves routers mounted after the app, such as MCP, to their own origin checks', async () => {
+    const app = createTestApp();
+    app.post('/mcp', (_req, res) => {
+      res.status(204).end();
+    });
+
+    await request(app).post('/mcp').set('Sec-Fetch-Site', 'same-site').expect(204);
   });
 
   it('protects the dashboard and clears the session at logout', async () => {

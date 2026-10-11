@@ -10,14 +10,14 @@ Copy `.env.example` to `.env` before starting the app:
 | `PORT` | HTTP port | `3000` |
 | `SERVER_URL` | Public URL written into webhook envelopes | `http://localhost:$PORT` |
 | `DELIVERY_CONCURRENCY` | Concurrent webhook deliveries | `4` |
-| `DELIVERY_RETENTION_DAYS` | Days to keep delivered and failed webhook delivery rows; pruned daily | `7` |
+| `DELIVERY_RETENTION_DAYS` | Days before the payload of a delivered or failed webhook delivery is cleared (daily); the row stays so its dedupe key keeps working | `7` |
 | `FFMPEG_PATH` | ffmpeg binary used to transcode voice notes | `ffmpeg` (from `PATH`) |
 | `MAX_OUTBOUND_MEDIA_BYTES` | Largest outbound media file, fetched from a URL or decoded from base64 | `20971520` |
 | `LOG_LEVEL` | Minimum log level | `info` |
 | `LOG_FORMAT` | Console log format | `logfmt` |
 | `LOG_DIRECTORY` | Optional directory for JSON application logs | unset |
 | `SESSION_TTL_SECONDS` | How long a dashboard login stays valid; rotating `API_KEY` revokes every session | `604800` (7 days) |
-| `TRUST_PROXY` | Express `trust proxy` behind a reverse proxy (`true`, a hop count, or addresses); login and media rate limits then key on the client address | unset |
+| `TRUST_PROXY` | Express `trust proxy` behind a reverse proxy (prefer a hop count such as `1`; `true` lets clients spoof their address); login and media rate limits then key on the client address. The proxy must also pass the original `Host` header | unset |
 | `ALLOW_PRIVATE_WEBHOOK_TARGETS` | Permit webhook callbacks on this host (loopback) or the local network, over plain http | `false` |
 | `REMOTE_SERVER_URL` | Outbound `wss://` URL for remote control (`ws://` only for loopback/private hosts) | unset |
 | `REMOTE_SERVER_TOKEN` | Bearer token sent to `REMOTE_SERVER_URL`; required when it is set | unset |

@@ -48,6 +48,13 @@ describe('transcodeToOpus', () => {
     await expect(transcodeToOpus(Buffer.concat([header, samples]))).rejects.toBeInstanceOf(InvalidMediaError);
   });
 
+  it('reports a missing ffmpeg as a server fault, not invalid media', async () => {
+    const conversion = transcodeToOpus(wav(8000), { ffmpegPath: '/nonexistent/ffmpeg' });
+
+    await expect(conversion).rejects.toThrow(/failed to start/);
+    await expect(conversion).rejects.not.toBeInstanceOf(InvalidMediaError);
+  });
+
   it('gives up on a payload that will not convert in time', async () => {
     await expect(transcodeToOpus(wav(48000), { timeoutMs: 1 })).rejects.toThrow(/timed out/);
   });

@@ -37,8 +37,8 @@ const MAX_SIGNATURE_SECRET_LENGTH = 512;
 const HEADER_NAME = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
 
 /**
- * Development accepts any http(s) callback. Otherwise: https, or http on loopback,
- * and never a private or link-local host.
+ * Development accepts any http(s) callback. Otherwise: https, never a loopback, private
+ * or link-local host, and http only to loopback or private hosts once those are allowed.
  *
  * Hostname-only check: a public name that resolves to a private address still passes
  * here, which is why the delivery worker re-checks the resolved address (src/delivery.ts).

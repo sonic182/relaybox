@@ -1,4 +1,4 @@
-import type { JsonObject } from '@zenstackhq/orm';
+import { DbNull, type JsonObject } from '@zenstackhq/orm';
 import type { Logger } from 'pino';
 import type { Db } from './db';
 
@@ -212,14 +212,15 @@ export function createDatabaseQueue({
     };
   }
 
-  async function pruneFinished(before: Date): Promise<number> {
-    const deleted = await db.webhookDelivery.deleteMany({
-      where: { status: { in: ['delivered', 'failed'] }, updatedAt: { lt: before } },
+  async function compactFinished(before: Date): Promise<number> {
+    const compacted = await db.webhookDelivery.updateMany({
+      where: { status: { in: ['delivered', 'failed'] }, createdAt: { lt: before }, payload: { not: DbNull } },
+      data: { payload: DbNull },
     });
-    return deleted.count;
+    return compacted.count;
   }
 
-  return { enqueue, consume, drain, pruneFinished };
+  return { enqueue, consume, drain, compactFinished };
 }
 
 export type DatabaseQueue = ReturnType<typeof createDatabaseQueue>;

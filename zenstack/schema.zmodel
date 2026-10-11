@@ -144,7 +144,7 @@ model WebhookDelivery {
     id             String    @id @default(cuid())
     event          String
     url            String
-    payload        Json
+    payload        Json?
     status         String    @default('pending')
     attempts       Int       @default(0)
     nextAttemptAt  DateTime?
@@ -160,4 +160,5 @@ model WebhookDelivery {
     instanceId String
 
     @@index([status, nextAttemptAt])
+    @@index([status, createdAt])
 }

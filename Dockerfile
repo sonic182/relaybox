@@ -9,7 +9,7 @@ ENV DB_URL=postgresql://postgres:postgres@localhost:5432/relaybox_dev
 
 # Build tools only if a native dependency falls back to node-gyp; sharp ships prebuilds.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 make g++ \
+    && apt-get install -y --no-install-recommends python3 make g++ ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

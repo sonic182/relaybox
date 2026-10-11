@@ -40,12 +40,12 @@ void pruneCompletedSends();
 const sendPruneTimer = setInterval(pruneCompletedSends, 24 * 60 * 60 * 1000);
 sendPruneTimer.unref();
 
-const pruneFinishedDeliveries = () =>
+const compactFinishedDeliveries = () =>
   deliveryQueue
-    .pruneFinished(new Date(Date.now() - DELIVERY_RETENTION_DAYS * 24 * 60 * 60 * 1000))
-    .catch((err: unknown) => logger.error({ err }, 'failed to prune finished webhook deliveries'));
-void pruneFinishedDeliveries();
-const deliveryPruneTimer = setInterval(pruneFinishedDeliveries, 24 * 60 * 60 * 1000);
+    .compactFinished(new Date(Date.now() - DELIVERY_RETENTION_DAYS * 24 * 60 * 60 * 1000))
+    .catch((err: unknown) => logger.error({ err }, 'failed to compact finished webhook deliveries'));
+void compactFinishedDeliveries();
+const deliveryPruneTimer = setInterval(compactFinishedDeliveries, 24 * 60 * 60 * 1000);
 deliveryPruneTimer.unref();
 
 let server: import('node:http').Server | undefined;
