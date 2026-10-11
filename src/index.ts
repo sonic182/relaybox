@@ -1,6 +1,6 @@
 import { createApp } from './app';
 import { createControlService, createControlValidator } from './api/control';
-import { DELIVERY_CONCURRENCY, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, REMOTE_TARGET, isDevelopment } from './config';
+import { DELIVERY_CONCURRENCY, DELIVERY_RETENTION_DAYS, ENABLE_MCP_SERVER, LOG_DIRECTORY, LOG_FORMAT, LOG_LEVEL, MCP_ALLOWED_HOSTS, MCP_PATH, REMOTE_TARGET, isDevelopment } from './config';
 import { createDb } from './db';
 import { createDeliveryWorker } from './delivery';
 import { createInstanceService } from './instances';
@@ -39,6 +39,14 @@ const pruneCompletedSends = () =>
 void pruneCompletedSends();
 const sendPruneTimer = setInterval(pruneCompletedSends, 24 * 60 * 60 * 1000);
 sendPruneTimer.unref();
+
+const pruneFinishedDeliveries = () =>
+  deliveryQueue
+    .pruneFinished(new Date(Date.now() - DELIVERY_RETENTION_DAYS * 24 * 60 * 60 * 1000))
+    .catch((err: unknown) => logger.error({ err }, 'failed to prune finished webhook deliveries'));
+void pruneFinishedDeliveries();
+const deliveryPruneTimer = setInterval(pruneFinishedDeliveries, 24 * 60 * 60 * 1000);
+deliveryPruneTimer.unref();
 
 let server: import('node:http').Server | undefined;
 let remoteClient: RemoteClient | undefined;

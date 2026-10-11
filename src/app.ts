@@ -11,6 +11,7 @@ import { LOG_FORMAT, LOG_LEVEL, TRUST_PROXY, isDevelopment } from './config';
 import { createChatsController } from './controllers/chats';
 import { createInstancesController } from './controllers/instances';
 import { createMediaController } from './controllers/media';
+import { createEventStreams } from './controllers/sse';
 import { demo, show, tick } from './controllers/ui';
 import { createWebhooksController } from './controllers/webhooks';
 import type { ChatService } from './chats';
@@ -51,10 +52,11 @@ export function createApp({
   app.set('env', isDevelopment() ? 'development' : 'production');
   if (TRUST_PROXY !== undefined) app.set('trust proxy', TRUST_PROXY);
   const dashboard = createDashboardController(instanceService);
-  const instances = createInstancesController(instanceService, controlService);
+  const eventStreams = createEventStreams();
+  const instances = createInstancesController(instanceService, controlService, eventStreams);
   const settings = createSettingsController(settingsService);
   const webhooks = createWebhooksController(webhookService);
-  const chats = createChatsController(chatService, instanceService);
+  const chats = createChatsController(chatService, instanceService, eventStreams);
   const media = createMediaController(chatService);
 
   app.use(securityHeaders);

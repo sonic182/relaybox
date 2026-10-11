@@ -3,22 +3,22 @@ import { isValidName, type InstanceService } from '../instances';
 import { createInstanceForm, instanceList } from '../views';
 import type { ControlService } from '../api/control';
 import { ApiError } from '../api/error-core';
+import { createEventStreams, type EventStreams } from './sse';
 
 type InstanceAction = (name: string) => Promise<void>;
 
 /** HTTP adapter for instance lifecycle operations. */
-export function createInstancesController(instanceService: InstanceService, controlService: ControlService) {
+export function createInstancesController(
+  instanceService: InstanceService,
+  controlService: ControlService,
+  streams: EventStreams = createEventStreams(),
+) {
   function list(_req: Request, res: Response): void {
     res.send(instanceList(instanceService.listInstances()));
   }
 
   function events(req: Request, res: Response): void {
-    res.set({
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'Content-Type': 'text/event-stream',
-    });
-    res.flushHeaders();
+    if (!streams.open(req, res)) return;
 
     const send = () => {
       res.write(`event: instances\ndata: ${JSON.stringify(instanceList(instanceService.listInstances()))}\n\n`);

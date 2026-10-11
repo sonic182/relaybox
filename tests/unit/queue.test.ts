@@ -226,4 +226,16 @@ describe('createDatabaseQueue', () => {
 
     expect(count).toBe(1);
   });
+
+  it('prunes settled deliveries last updated before the cutoff and keeps pending ones', async () => {
+    const { db, instance, queue } = await setupQueue();
+    for (const [id, status] of [['delivered', 'delivered'], ['failed', 'failed'], ['pending', 'pending']]) {
+      await queue.enqueue(job(instance.id, { id, dedupeKey: id }));
+      await db.webhookDelivery.update({ where: { id }, data: { status } });
+    }
+
+    expect(await queue.pruneFinished(new Date(Date.now() - 60_000))).toBe(0);
+    expect(await queue.pruneFinished(new Date(Date.now() + 60_000))).toBe(2);
+    expect((await db.webhookDelivery.findMany()).map((row) => row.id)).toEqual(['pending']);
+  });
 });

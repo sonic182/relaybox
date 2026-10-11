@@ -33,8 +33,8 @@ export function createApiRouter({ instanceService, chatService, sendService, log
   const router = Router();
 
   router.use(['/sendMedia', '/sendWhatsAppAudio'], requireApiKey, express.json({ limit: MEDIA_JSON_LIMIT }));
-  router.use(express.json({ limit: '1mb' }));
   router.use(requireApiKey);
+  router.use(express.json({ limit: '1mb' }));
 
   // Express strips the matched prefix, so route groups register their paths directly.
   router.use(createInstanceRoutes(controlService));

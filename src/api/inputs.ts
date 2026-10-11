@@ -22,8 +22,12 @@ function validateRecipient(number: unknown, errors: string[]): void {
   else if (!toRecipientJid(number)) errors.push('"number" must contain digits or a qualified JID');
 }
 
+export const MAX_DELAY_MS = 300_000;
+
 function validateSendOptions(delay: number | undefined, presence: WAPresence | undefined, errors: string[]): void {
-  if (delay !== undefined && (!Number.isInteger(delay) || delay < 0)) errors.push('"delay" must be a non-negative integer');
+  if (delay !== undefined && (!Number.isInteger(delay) || delay < 0 || delay > MAX_DELAY_MS)) {
+    errors.push(`"delay" must be an integer from 0 to ${MAX_DELAY_MS}`);
+  }
   if (presence !== undefined && !PRESENCES.includes(presence)) {
     errors.push('"presence" must be one of: composing, recording, paused, available, unavailable');
   }

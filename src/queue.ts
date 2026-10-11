@@ -212,7 +212,14 @@ export function createDatabaseQueue({
     };
   }
 
-  return { enqueue, consume, drain };
+  async function pruneFinished(before: Date): Promise<number> {
+    const deleted = await db.webhookDelivery.deleteMany({
+      where: { status: { in: ['delivered', 'failed'] }, updatedAt: { lt: before } },
+    });
+    return deleted.count;
+  }
+
+  return { enqueue, consume, drain, pruneFinished };
 }
 
 export type DatabaseQueue = ReturnType<typeof createDatabaseQueue>;

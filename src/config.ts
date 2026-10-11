@@ -84,6 +84,8 @@ export const TRUST_PROXY = parseTrustProxy(process.env.TRUST_PROXY);
 
 export const SERVER_URL = process.env.SERVER_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
 
+export const DELIVERY_RETENTION_DAYS = parsePositiveInt('DELIVERY_RETENTION_DAYS', process.env.DELIVERY_RETENTION_DAYS, 7);
+
 /** How many due webhook deliveries one drain sends at once. */
 export const DELIVERY_CONCURRENCY = parsePositiveInt('DELIVERY_CONCURRENCY', process.env.DELIVERY_CONCURRENCY, 4);
 
