@@ -140,6 +140,18 @@ describe('web app', () => {
       .expect(/redoc\.standalone\.js/);
   });
 
+  it('sends security headers and pins third-party scripts', async () => {
+    const response = await request(createTestApp()).get('/login').expect(200);
+
+    expect(response.headers).toMatchObject({
+      'x-content-type-options': 'nosniff',
+      'x-frame-options': 'DENY',
+      'referrer-policy': 'same-origin',
+    });
+    expect(response.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(response.text).toMatch(/htmx\.org@2\.0\.11\/dist\/htmx\.min\.js" integrity="sha384-/);
+  });
+
   it('serves the component gallery in development only', async () => {
     await request(createTestApp()).get('/ui').expect(200).expect(/Components/);
 

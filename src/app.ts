@@ -17,6 +17,7 @@ import type { ChatService } from './chats';
 import type { InstanceService } from './instances';
 import { createLogger } from './logger';
 import { createRateLimit } from './rateLimit';
+import { securityHeaders } from './securityHeaders';
 import type { SendService } from './sends';
 import type { WebhookService } from './webhooks';
 import { API_PREFIXES, createApiRouter } from './api/router';
@@ -56,6 +57,7 @@ export function createApp({
   const chats = createChatsController(chatService, instanceService);
   const media = createMediaController(chatService);
 
+  app.use(securityHeaders);
   app.use(express.static('public'));
   // Documentation is public and describes the API; it does not call any integrations.
   app.get('/swagger.json', swaggerJson);
