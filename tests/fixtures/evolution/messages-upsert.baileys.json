@@ -1,0 +1,11 @@
+{
+    "key": {
+        "remoteJid": "5511888888888:12@s.whatsapp.net",
+        "fromMe": false,
+        "id": "3EB0C767D26B8A3F1A2B0000000000AB"
+    },
+    "pushName": "Jane",
+    "message": { "extendedTextMessage": { "text": "hello there" } },
+    "messageTimestamp": 1756555200,
+    "status": 3
+}

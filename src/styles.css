@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* <summary> is the Dropdown toggle; hide the native disclosure triangle. */
+summary::-webkit-details-marker {
+    display: none;
+}

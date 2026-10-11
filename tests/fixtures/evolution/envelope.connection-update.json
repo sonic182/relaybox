@@ -1,0 +1,17 @@
+{
+    "event": "connection.update",
+    "instance": "acme",
+    "data": {
+        "instance": "acme",
+        "wuid": "5511999999999@s.whatsapp.net",
+        "profileName": "Acme Support",
+        "profilePictureUrl": null,
+        "state": "open",
+        "statusReason": 200
+    },
+    "destination": "https://consumer.example/webhooks/whatsapp",
+    "date_time": "2026-08-30T12:00:00.000Z",
+    "sender": "5511999999999@s.whatsapp.net",
+    "server_url": "http://localhost:3000",
+    "apikey": "test-api-key-0000"
+}

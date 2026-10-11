@@ -1,0 +1,22 @@
+# Throwaway PostgreSQL for the test suite, isolated from the app's compose project and data.
+# Use it through the Makefile: `make test-db-up`, `make test-file FILE=...`, `make test-db-down`.
+name: relaybox-test
+
+services:
+  postgres:
+    image: postgres:18.3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: relaybox_dev
+    # Off the default port so it never collides with another local PostgreSQL.
+    ports:
+      - '127.0.0.1:${TEST_DB_PORT:-55432}:5432'
+    # Test data is disposable; tmpfs keeps it fast and leaves nothing behind.
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d relaybox_dev']
+      interval: 1s
+      timeout: 5s
+      retries: 30

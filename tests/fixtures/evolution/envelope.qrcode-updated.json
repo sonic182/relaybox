@@ -1,0 +1,17 @@
+{
+    "event": "qrcode.updated",
+    "instance": "acme",
+    "data": {
+        "qrcode": {
+            "instance": "acme",
+            "pairingCode": null,
+            "code": "2@abcdef1234567890,ABCDEF==,1234==",
+            "base64": "data:image/png;base64,iVBORw0KGgo="
+        }
+    },
+    "destination": "https://consumer.example/webhooks/whatsapp",
+    "date_time": "2026-08-30T12:00:00.000Z",
+    "sender": "5511999999999@s.whatsapp.net",
+    "server_url": "http://localhost:3000",
+    "apikey": "test-api-key-0000"
+}

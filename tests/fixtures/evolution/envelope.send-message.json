@@ -1,0 +1,21 @@
+{
+    "event": "send.message",
+    "instance": "acme",
+    "data": {
+        "key": {
+            "remoteJid": "5511888888888@s.whatsapp.net",
+            "fromMe": true,
+            "id": "SENT-1"
+        },
+        "message": { "conversation": "¡Hola! Gracias por escribir." },
+        "messageType": "conversation",
+        "messageTimestamp": 1756555200,
+        "instanceId": "clw0instance00000000000001",
+        "status": "PENDING"
+    },
+    "destination": "https://consumer.example/webhooks/whatsapp",
+    "date_time": "2026-08-30T12:00:00.000Z",
+    "sender": "5511999999999@s.whatsapp.net",
+    "server_url": "http://localhost:3000",
+    "apikey": "test-api-key-0000"
+}

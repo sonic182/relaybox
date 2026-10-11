@@ -1,0 +1,14 @@
+{
+  "path": ["src", "tests"],
+  "formats": ["typescript", "tsx"],
+  "minLines": 5,
+  "maxLines": 500,
+  "maxSize": "30kb",
+  "minTokens": 50,
+  "threshold": 1,
+  "reporters": ["ai"],
+  "ignore": [],
+  "mode": "mild",
+  "ignoreCase": false,
+  "noGitignore": true
+}

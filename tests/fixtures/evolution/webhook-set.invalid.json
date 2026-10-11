@@ -1,0 +1,7 @@
+{
+    "webhook": {
+        "enabled": true,
+        "url": "not-a-url",
+        "events": ["MESSAGES_UPSERT", "CHATWOOT_IMPORT"]
+    }
+}

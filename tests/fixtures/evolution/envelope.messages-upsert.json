@@ -1,0 +1,23 @@
+{
+    "event": "messages.upsert",
+    "instance": "acme",
+    "data": {
+        "key": {
+            "remoteJid": "5511888888888@s.whatsapp.net",
+            "fromMe": false,
+            "id": "3EB0C767D26B8A3F1A2B0000000000AB"
+        },
+        "pushName": "Jane",
+        "message": { "conversation": "hello there" },
+        "messageType": "conversation",
+        "messageTimestamp": 1756555200,
+        "instanceId": "clw0instance00000000000001",
+        "source": "android",
+        "status": "DELIVERY_ACK"
+    },
+    "destination": "https://consumer.example/webhooks/whatsapp",
+    "date_time": "2026-08-30T12:00:00.000Z",
+    "sender": "5511999999999@s.whatsapp.net",
+    "server_url": "http://localhost:3000",
+    "apikey": "test-api-key-0000"
+}

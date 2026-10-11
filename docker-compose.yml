@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:18.3
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: relaybox_dev
+    # ports:
+    #   - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d relaybox_dev']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  relaybox:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '3000:3000'
+    volumes:
+      - media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Live-reloading variant for local work: stops at the Dockerfile's `build` stage, which
+  # still has the dev dependencies and tsx, and runs src/ off a bind mount so an edit
+  # restarts the server instead of needing a rebuild.
+  #
+  # Opt in with `docker compose --profile dev up relaybox-dev`. Stop the `relaybox`
+  # service first — it claims the same port, and both share one database and WhatsApp
+  # session. A change to zenstack/ or package.json still needs a rebuild.
+  relaybox-dev:
+    profiles: ['dev']
+    build:
+      context: .
+      target: build
+    env_file: .env
+    environment:
+      # The watcher serves TypeScript straight from src/; nothing here runs out of dist/.
+      NODE_ENV: development
+    # The build stage has no entrypoint of its own, so point at the migration wrapper.
+    entrypoint: /app/docker/entrypoint.sh
+    command: pnpm run dev
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./docker:/app/docker:ro
+      - media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  media:

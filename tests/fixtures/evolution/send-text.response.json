@@ -1,0 +1,12 @@
+{
+    "key": {
+        "remoteJid": "5511888888888@s.whatsapp.net",
+        "fromMe": true,
+        "id": "SENT-1"
+    },
+    "message": { "conversation": "¡Hola! Gracias por escribir." },
+    "messageType": "conversation",
+    "messageTimestamp": 1756555200,
+    "instanceId": "id-acme",
+    "status": "PENDING"
+}

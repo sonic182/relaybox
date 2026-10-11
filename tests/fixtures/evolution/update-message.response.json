@@ -1,0 +1,20 @@
+{
+    "key": {
+        "remoteJid": "5511888888888@s.whatsapp.net",
+        "fromMe": true,
+        "id": "EDIT-OUT-1"
+    },
+    "message": {
+        "protocolMessage": {
+            "key": {
+                "id": "3EB0C767D26B8A3F1A2B0000000000AB",
+                "remoteJid": "5511888888888@s.whatsapp.net",
+                "fromMe": true
+            },
+            "editedMessage": { "conversation": "Hola, mensaje corregido." },
+            "type": "MESSAGE_EDIT"
+        }
+    },
+    "messageTimestamp": 1756555300,
+    "status": "PENDING"
+}

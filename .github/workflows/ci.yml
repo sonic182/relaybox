@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    env:
+      API_KEY: test-api-key-0000
+      NODE_ENV: test
+      DB_URL: postgresql://postgres:postgres@localhost:5432/relaybox_dev
+    services:
+      postgres:
+        image: postgres:18.3
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: relaybox_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d relaybox_dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.24.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate ZenStack client
+        run: pnpm run zen:generate
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Check duplication
+        run: pnpm run jscpd
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Typecheck tests
+        run: pnpm run typecheck
+
+      - name: Run tests with coverage
+        run: pnpm run test:coverage

@@ -1,0 +1,163 @@
+datasource db {
+    provider = 'postgresql'
+    url = env('DB_URL')
+}
+
+/// Durable identity and lifecycle metadata for a WhatsApp instance.
+model InstanceRecord {
+    id               String    @id @default(cuid())
+    name             String    @unique
+    connectionStatus String    @default('close')
+    ownerJid         String?
+    createdAt        DateTime  @default(now())
+    updatedAt        DateTime  @updatedAt
+    connectedAt      DateTime?
+
+    webhook    WebhookConfig?
+    settings   InstanceSettings?
+    chats      Chat[]
+    messages   Message[]
+    deliveries WebhookDelivery[]
+    sends      SendRequest[]
+    authState  BaileysAuthState?
+}
+
+/// Baileys credentials and Signal keys for one WhatsApp instance.
+model BaileysAuthState {
+    instance   InstanceRecord @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+    instanceId String         @id
+    creds      Json
+    keys       Json
+    updatedAt  DateTime       @updatedAt
+}
+
+/// Webhook configuration, one per instance. Field names follow the reference row shape;
+/// `signatureSecret` is an extra security field the reference does not have.
+model WebhookConfig {
+    id              String   @id @default(cuid())
+    url             String
+    headers         Json?
+    /// HMAC secret for the `X-Webhook-Signature` delivery header.
+    signatureSecret String?
+    /// Enables delivery signing without requiring the secret to be re-entered in the dashboard.
+    signatureEnabled Boolean @default(false)
+    enabled         Boolean  @default(true)
+    events          Json
+    webhookByEvents Boolean  @default(false)
+    webhookBase64   Boolean  @default(false)
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+
+    instance   InstanceRecord @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+    instanceId String         @unique
+}
+
+/// Per-instance behavior settings, one row per instance. A missing row means the defaults.
+model InstanceSettings {
+    id              String   @id @default(cuid())
+    /// Import the history WhatsApp sends while pairing; off ignores it.
+    syncFullHistory Boolean  @default(false)
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+
+    instance   InstanceRecord @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+    instanceId String         @unique
+}
+
+/// Lightweight projection powering the dashboard chat list.
+model Chat {
+    id                 String   @id @default(cuid())
+    remoteJid          String
+    name               String?
+    unreadMessages     Int      @default(0)
+    lastMessageAt      DateTime?
+    lastMessagePreview String?
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+
+    instance   InstanceRecord @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+    instanceId String
+
+    @@unique([instanceId, remoteJid])
+    @@index([instanceId, lastMessageAt])
+}
+
+/// Persisted message. `content` keeps the raw payload for replay; the columns beside it
+/// are the normalized fields the API and UI read.
+model Message {
+    id               String   @id @default(cuid())
+    keyId            String
+    remoteJid        String
+    fromMe           Boolean
+    participant      String?
+    pushName         String?
+    messageType      String
+    messageTimestamp Int
+    status           String?
+    content          Json
+    /// Message metadata rather than content: mentions, quotes, and the
+    /// click-to-WhatsApp ad referral a lead arrived from.
+    contextInfo      Json?
+    createdAt        DateTime @default(now())
+
+    media    Media?
+    instance InstanceRecord @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+    instanceId String
+
+    // Ingestion idempotency: the WhatsApp message key is unique per instance.
+    @@unique([instanceId, remoteJid, fromMe, keyId])
+    @@index([instanceId, remoteJid, messageTimestamp])
+}
+
+/// One file per media message: maps the stored message to its bytes on disk. A WhatsApp
+/// message carries at most one media node, so the relation is one-to-one.
+model Media {
+    id        String   @id @default(cuid())
+    /// Relative to the instance's media folder; the served file.
+    path      String
+    mimetype  String
+    size      Int?
+    createdAt DateTime @default(now())
+
+    message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+    messageId String   @unique
+}
+
+/// Makes a retried send safe. The key is claimed before the message leaves, and the
+/// response is stored on it so a replay answers identically instead of sending twice.
+model SendRequest {
+    id             String   @id @default(cuid())
+    idempotencyKey String
+    /// Null while the send is still in flight.
+    response       Json?
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    instance   InstanceRecord @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+    instanceId String
+
+    @@unique([instanceId, idempotencyKey])
+}
+
+/// Durable outbox. A row is written before any outbound HTTP request is attempted.
+model WebhookDelivery {
+    id             String    @id @default(cuid())
+    event          String
+    url            String
+    payload        Json
+    status         String    @default('pending')
+    attempts       Int       @default(0)
+    nextAttemptAt  DateTime?
+    deliveredAt    DateTime?
+    responseStatus Int?
+    lastError      String?
+    /// Collapses duplicate outbox rows for the same source event.
+    dedupeKey      String    @unique
+    createdAt      DateTime  @default(now())
+    updatedAt      DateTime  @updatedAt
+
+    instance   InstanceRecord @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+    instanceId String
+
+    @@index([status, nextAttemptAt])
+}

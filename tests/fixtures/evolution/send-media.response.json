@@ -1,0 +1,12 @@
+{
+    "key": {
+        "remoteJid": "5511888888888@s.whatsapp.net",
+        "fromMe": true,
+        "id": "SENT-MEDIA-1"
+    },
+    "message": { "imageMessage": {} },
+    "messageType": "imageMessage",
+    "messageTimestamp": 1756555200,
+    "instanceId": "id-acme",
+    "status": "PENDING"
+}

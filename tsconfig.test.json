@@ -1,0 +1,11 @@
+{
+  "//": "Typechecks the tests too. The base config cannot: `tsc` builds from it, and tests must not reach dist. Vitest resolves like a bundler, so the module settings differ from the build's.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"]
+  },
+  "include": ["src", "zenstack", "tests"]
+}

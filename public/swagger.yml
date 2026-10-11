@@ -1,0 +1,1394 @@
+openapi: 3.1.0
+info:
+  title: Relaybox API
+  version: 0.0.1
+  description: The Evolution-compatible JSON API implemented by this server.
+servers:
+  - url: /
+security:
+  - ApiKeyAuth: []
+paths:
+  /instances:
+    post:
+      summary: Create an instance from the dashboard
+      operationId: createDashboardInstance
+      security:
+        - DashboardSession: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  pattern: '^[a-zA-Z0-9_-]{1,32}$'
+                syncFullHistory:
+                  type: string
+                  enum: ['on']
+                  description: Import history on pairing; omitted means off.
+      responses:
+        '200':
+          description: HTML instance list; HX-Retarget selects the instance list on success.
+        '302':
+          description: Redirect to login when unauthenticated.
+        '400':
+          description: Invalid input or duplicate name; HTML form error.
+  /instances/{instanceName}/settings:
+    parameters:
+      - $ref: '#/components/parameters/InstanceName'
+    get:
+      summary: Edit instance settings in the dashboard
+      operationId: showDashboardSettings
+      security:
+        - DashboardSession: []
+      responses:
+        '200':
+          description: HTML settings page with the stored history option.
+        '302':
+          description: Redirect to login when unauthenticated.
+        '400':
+          description: Invalid instance name.
+        '404':
+          description: Instance not found.
+    post:
+      summary: Save dashboard instance settings
+      operationId: saveDashboardSettings
+      security:
+        - DashboardSession: []
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                syncFullHistory:
+                  type: string
+                  enum: ['on']
+                  description: Checked means enabled; omitted means disabled.
+      responses:
+        '200':
+          description: HTML settings page with confirmation.
+        '302':
+          description: Redirect to login when unauthenticated.
+        '400':
+          description: Invalid form input.
+        '404':
+          description: Instance not found.
+  /instances/{instanceName}/unpair:
+    post:
+      summary: Unpair the WhatsApp device before scanning a new QR
+      operationId: unpairDashboardInstance
+      security:
+        - DashboardSession: []
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: Updated HTML instance list.
+        '302':
+          description: Redirect to login when unauthenticated.
+        '400':
+          description: Invalid instance name.
+  /instance/create:
+    post:
+      summary: Create a Baileys WhatsApp instance
+      operationId: createInstance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstanceCreateInput'
+            example:
+              instanceName: acme
+              qrcode: false
+      responses:
+        '201':
+          description: Instance created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /instance/fetchInstances:
+    get:
+      summary: List instances
+      operationId: fetchInstances
+      parameters:
+        - name: instanceName
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]{1,32}$'
+        - name: instanceId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Instances visible to the API key.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InstanceListItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /instance/connectionState/{instanceName}:
+    get:
+      summary: Get an instance connection state
+      operationId: getConnectionState
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: Current connection state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionStateResponse'
+              example:
+                instance:
+                  instanceName: acme
+                  state: open
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /instance/connect/{instanceName}:
+    get:
+      summary: Get the pairing QR code, or the connection state if already paired
+      description: >-
+        Triggers a reconnect when the instance is closed and waits briefly for a QR code.
+        Returns the QR as a PNG data URL while pairing is pending, or the connection state
+        once open.
+      operationId: connectInstance
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: A pending QR code, or the current connection state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectResponse'
+              examples:
+                qrPending:
+                  value:
+                    base64: data:image/png;base64,iVBORw0KGgo=
+                alreadyOpen:
+                  value:
+                    instance:
+                      instanceName: acme
+                      state: open
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /instance/logout/{instanceName}:
+    delete:
+      summary: Unpair an instance
+      description: >-
+        Ends the WhatsApp session so the next connect needs a fresh QR scan, without deleting
+        the instance itself.
+      operationId: logoutInstance
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: The instance was logged out.
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /instance/delete/{instanceName}:
+    delete:
+      summary: Delete an instance
+      operationId: deleteInstance
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: The instance was deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, error, response]
+                properties:
+                  status:
+                    type: string
+                    example: SUCCESS
+                  error:
+                    type: boolean
+                    example: false
+                  response:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        example: Instance deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /instance/rename/{instanceName}:
+    post:
+      summary: Rename an instance
+      operationId: renameInstance
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newName]
+              additionalProperties: false
+              properties:
+                newName:
+                  type: string
+                  pattern: '^[a-zA-Z0-9_-]{1,32}$'
+      responses:
+        '200':
+          description: The renamed instance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /instance/disconnect/{instanceName}:
+    post:
+      summary: Disconnect an instance without deleting its session
+      operationId: disconnectInstance
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: The disconnected instance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /message/sendText/{instanceName}:
+    post:
+      summary: Send a text message
+      operationId: sendText
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendTextInput'
+            example:
+              number: '5511888888888'
+              text: '¡Hola! Gracias por escribir.'
+      responses:
+        '201':
+          description: Message accepted by WhatsApp.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                key:
+                  remoteJid: 5511888888888@s.whatsapp.net
+                  fromMe: true
+                  id: SENT-1
+                message:
+                  conversation: '¡Hola! Gracias por escribir.'
+                messageType: conversation
+                messageTimestamp: 1756555200
+                instanceId: cmtfsb1l20000ag3ie403ck3h
+                status: PENDING
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+  /message/sendMedia/{instanceName}:
+    post:
+      summary: Send an image, video, document, or audio file
+      description: >-
+        Media is an HTTP(S) URL the server fetches, or a base64-encoded payload. `audio` here
+        produces a file-style bubble; for a push-to-talk voice note use
+        /message/sendWhatsAppAudio. `mimetype` is optional; the request is rejected with 400
+        when it is omitted and cannot be inferred.
+      operationId: sendMedia
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMediaInput'
+            examples:
+              explicitMimetype:
+                summary: Explicit mimetype
+                value:
+                  number: '5511888888888'
+                  mediatype: image
+                  media: https://consumer.example/receipt.png
+                  mimetype: image/png
+                  caption: 'Aquí tienes tu recibo.'
+              inferredMimetype:
+                summary: Mimetype and document name inferred from the URL
+                value:
+                  number: '5511888888888'
+                  mediatype: document
+                  media: https://consumer.example/invoices/recibo.pdf
+      responses:
+        '201':
+          description: Message accepted by WhatsApp.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+  /message/sendWhatsAppAudio/{instanceName}:
+    post:
+      summary: Send a push-to-talk voice note
+      description: >-
+        Transcodes the input to ogg/opus with ffmpeg and sends it as a voice note, not the
+        file-style bubble sendMedia produces for `mediatype: audio`. The audio is an HTTP(S)
+        URL the server fetches or a base64-encoded payload; a multipart request may upload
+        the bytes as `file` instead, which takes precedence over the field.
+
+
+        Pass `encoding: false` to send the bytes untouched, for a caller that already encoded
+        them. A payload ffmpeg cannot read is answered with 400, not 500.
+      operationId: sendWhatsAppAudio
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendAudioInput'
+            example:
+              number: '5511888888888'
+              audio: https://consumer.example/voice-note.mp3
+              delay: 1200
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendAudioUpload'
+      responses:
+        '201':
+          description: Voice note accepted by WhatsApp.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+  /chat/findMessages/{instanceName}:
+    post:
+      summary: Look up a stored message by key
+      description: >-
+        Returns the message under `messages.records`, empty when nothing matches. Only lookup
+        by `where.key.id` is supported; the reference's other filters are not.
+      operationId: findMessages
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageKeyLookup'
+            example:
+              where:
+                key:
+                  id: BAE5F5A632EAE722
+      responses:
+        '200':
+          description: The matching message, or an empty list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindMessagesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /chat/getBase64FromMediaMessage/{instanceName}:
+    post:
+      summary: Fetch a stored media message as base64
+      description: >-
+        Reads bytes the server downloaded when the message arrived. `convertToMp4` is
+        rejected rather than silently ignored, since no conversion happens here.
+      operationId: getBase64FromMediaMessage
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaMessageLookup'
+            example:
+              message:
+                key:
+                  id: BAE5F5A632EAE722
+      responses:
+        '201':
+          description: The stored bytes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Base64MediaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /chat/updateMessage/{instanceName}:
+    post:
+      summary: Edit a sent message
+      operationId: updateMessage
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMessageInput'
+            example:
+              number: '5511888888888'
+              text: 'Hola, mensaje corregido.'
+              key:
+                id: 3EB0C767D26B8A3F1A2B0000000000AB
+                remoteJid: 5511888888888@s.whatsapp.net
+                fromMe: true
+      responses:
+        '200':
+          description: Edited message response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                key:
+                  remoteJid: 5511888888888@s.whatsapp.net
+                  fromMe: true
+                  id: EDIT-OUT-1
+                message:
+                  protocolMessage:
+                    key:
+                      id: 3EB0C767D26B8A3F1A2B0000000000AB
+                      remoteJid: 5511888888888@s.whatsapp.net
+                      fromMe: true
+                    editedMessage:
+                      conversation: 'Hola, mensaje corregido.'
+                    type: MESSAGE_EDIT
+                messageTimestamp: 1756555300
+                status: PENDING
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+  /webhook/set/{instanceName}:
+    post:
+      summary: Configure outbound webhooks
+      operationId: setWebhook
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookConfigInput'
+            example:
+              webhook:
+                enabled: true
+                url: https://consumer.example/webhooks/whatsapp
+                headers:
+                  X-Customer: acme
+                signatureSecret: example-signing-secret-16
+                signatureEnabled: true
+                byEvents: false
+                base64: false
+                events:
+                  - MESSAGES_UPSERT
+                  - CONNECTION_UPDATE
+      responses:
+        '201':
+          description: Stored webhook configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookConfigResponse'
+              example:
+                id: clw0webhook000000000000001
+                url: https://consumer.example/webhooks/whatsapp
+                headers:
+                  X-Customer: acme
+                hasSignatureSecret: true
+                signatureEnabled: true
+                enabled: true
+                events:
+                  - MESSAGES_UPSERT
+                  - CONNECTION_UPDATE
+                webhookByEvents: false
+                webhookBase64: false
+                createdAt: '2026-08-30T12:00:00.000Z'
+                updatedAt: '2026-08-30T12:00:00.000Z'
+                instanceId: clw0instance00000000000001
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+  /webhook/find/{instanceName}:
+    get:
+      summary: Find an outbound webhook configuration
+      operationId: findWebhook
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: Stored configuration, or null when none exists.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/WebhookConfigResponse'
+                  - type: 'null'
+              examples:
+                configured:
+                  value:
+                    id: clw0webhook000000000000001
+                    url: https://consumer.example/webhooks/whatsapp
+                    headers:
+                      X-Customer: acme
+                    hasSignatureSecret: true
+                    signatureEnabled: true
+                    enabled: true
+                    events:
+                      - MESSAGES_UPSERT
+                      - CONNECTION_UPDATE
+                    webhookByEvents: false
+                    webhookBase64: false
+                    createdAt: '2026-08-30T12:00:00.000Z'
+                    updatedAt: '2026-08-30T12:00:00.000Z'
+                    instanceId: clw0instance00000000000001
+                unconfigured:
+                  value: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /settings/set/{instanceName}:
+    post:
+      summary: Configure instance settings
+      description: >-
+        Only `syncFullHistory` is supported. Unlike the reference, `false` ignores the history
+        WhatsApp sends while pairing instead of still receiving the recent history. WhatsApp
+        only sends that history while pairing, so an already paired instance must be logged out
+        and scanned again after enabling it.
+      operationId: setSettings
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsInput'
+            example:
+              syncFullHistory: true
+      responses:
+        '201':
+          description: Stored settings.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [settings]
+                properties:
+                  settings:
+                    type: object
+                    required: [instanceName, settings]
+                    properties:
+                      instanceName:
+                        type: string
+                      settings:
+                        $ref: '#/components/schemas/SettingsInput'
+              example:
+                settings:
+                  instanceName: acme
+                  settings:
+                    syncFullHistory: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /settings/find/{instanceName}:
+    get:
+      summary: Find instance settings
+      operationId: findSettings
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+      responses:
+        '200':
+          description: Stored settings, or the defaults when none were set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsInput'
+              example:
+                syncFullHistory: false
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /media/{instanceName}/{keyId}:
+    get:
+      summary: Fetch stored media with a signed token
+      description: >-
+        Serves the bytes of a stored media message. Unlike the JSON API it is not
+        authenticated with the `apikey` header; instead the URL carries an `exp` Unix
+        timestamp and an HMAC `sig` over `instanceName:keyId:exp`, keyed by the server's
+        API key. MCP `get_media` returns such a URL so a caller can fetch it directly.
+        Uncached imported media is fetched on demand through a connected WhatsApp instance
+        and cached locally. Expired or unavailable WhatsApp media can still return 404.
+      operationId: getMediaByToken
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/InstanceName'
+        - name: keyId
+          in: path
+          required: true
+          description: The message key id whose media to fetch.
+          schema:
+            type: string
+          example: BAE5F5A632EAE722
+        - name: exp
+          in: query
+          required: true
+          description: Expiry as Unix seconds.
+          schema:
+            type: integer
+          example: 1756555500
+        - name: sig
+          in: query
+          required: true
+          description: Hex HMAC-SHA256 of `instanceName:keyId:exp`.
+          schema:
+            type: string
+          example: 3f2a1c9e5b7d4a0f8e6c2b1a9d3f7e5c0b8a6d4f2e1c9b7a5d3f1e0c8b6a4d2f
+      responses:
+        '200':
+          description: The stored bytes, typed by their mimetype, with a sandbox CSP to prevent script execution.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Missing, expired, or tampered token.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No media available for that message, locally or from WhatsApp.
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  securitySchemes:
+    DashboardSession:
+      type: apiKey
+      in: cookie
+      name: relaybox_session
+      description: Set by the dashboard login. Holds an HMAC derived from `API_KEY`, not the key itself.
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+  parameters:
+    InstanceName:
+      name: instanceName
+      in: path
+      required: true
+      description: Instance name (1–32 letters, numbers, hyphens, or underscores).
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9_-]{1,32}$'
+      example: acme
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Reuse this key to replay a completed send or edit instead of repeating the WhatsApp operation.
+      schema:
+        type: string
+      example: order-42
+  responses:
+    BadRequest:
+      description: Invalid input or an instance that is not connected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 401
+            error: Unauthorized
+            response:
+              message: Unauthorized
+    NotFound:
+      description: Unknown instance.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 404
+            error: Not Found
+            response:
+              message: The "ghost" instance does not exist
+    Conflict:
+      description: A request with the same idempotency key is still in progress.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    PayloadTooLarge:
+      description: JSON request body exceeds the 1 MiB limit.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+  schemas:
+    ApiError:
+      type: object
+      required: [status, error, response]
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        response:
+          type: object
+          required: [message]
+          properties:
+            message:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+    ConnectionStateResponse:
+      type: object
+      required: [instance]
+      properties:
+        instance:
+          type: object
+          required: [instanceName, state]
+          properties:
+            instanceName:
+              type: string
+            state:
+              type: string
+              enum: [open, close, connecting]
+      example:
+        instance:
+          instanceName: acme
+          state: open
+    ConnectResponse:
+      oneOf:
+        - $ref: '#/components/schemas/ConnectionStateResponse'
+        - type: object
+          required: [base64]
+          properties:
+            base64:
+              type: string
+              description: QR code as a PNG data URL.
+    InstanceCreateInput:
+      type: object
+      required: [instanceName]
+      additionalProperties: false
+      properties:
+        instanceName:
+          type: string
+          pattern: '^[a-zA-Z0-9_-]{1,32}$'
+        qrcode:
+          type: boolean
+          default: false
+        integration:
+          type: string
+          enum: [WHATSAPP-BAILEYS]
+          description: Only the Baileys integration is supported by this server.
+        syncFullHistory:
+          type: boolean
+          default: false
+          description: >-
+            Import the history WhatsApp sends while pairing. Off by default, in which case that
+            history is ignored. See the instance settings endpoints to change it later.
+        webhook:
+          type: object
+          required: [url]
+          properties:
+            url:
+              type: string
+            enabled:
+              type: boolean
+              default: true
+            headers:
+              oneOf:
+                - type: object
+                  additionalProperties:
+                    type: string
+                - type: 'null'
+            signatureSecret:
+              oneOf:
+                - type: string
+                  minLength: 16
+                  maxLength: 512
+                - type: string
+                  const: ''
+                - type: 'null'
+              writeOnly: true
+              description: HMAC secret. Surrounding whitespace is trimmed; use null or an empty string to disable signing.
+            signatureEnabled:
+              type: boolean
+              description: Whether deliveries include the X-Webhook-Signature header. A secret is required when true.
+            byEvents:
+              type: boolean
+              default: false
+            base64:
+              type: boolean
+              default: false
+            events:
+              type: array
+              items:
+                $ref: '#/components/schemas/EvolutionEvent'
+    SettingsInput:
+      type: object
+      required: [syncFullHistory]
+      additionalProperties: false
+      properties:
+        syncFullHistory:
+          type: boolean
+          description: Import the history WhatsApp sends while pairing; false ignores it.
+    InstanceQrCode:
+      type: object
+      properties:
+        base64:
+          type: string
+        code:
+          type: string
+    InstanceOperationResponse:
+      type: object
+      required: [instance]
+      properties:
+        instance:
+          type: object
+          required: [instanceName, instanceId, integration, status]
+          properties:
+            instanceName:
+              type: string
+            instanceId:
+              type: string
+            integration:
+              type: string
+              enum: [WHATSAPP-BAILEYS]
+            status:
+              type: string
+              enum: [open, close, connecting]
+        qrcode:
+          $ref: '#/components/schemas/InstanceQrCode'
+    InstanceListItem:
+      type: object
+      required: [id, name, connectionStatus]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        connectionStatus:
+          type: string
+          enum: [open, close, connecting]
+        ownerJid:
+          type: string
+    MessageKeyLookup:
+      type: object
+      required: [where]
+      properties:
+        where:
+          type: object
+          required: [key]
+          properties:
+            key:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
+    MediaMessageLookup:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: object
+          required: [key]
+          properties:
+            key:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
+        convertToMp4:
+          type: boolean
+          description: Only false is accepted; true is rejected, as no conversion happens here.
+    FindMessagesResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: object
+          required: [records]
+          properties:
+            records:
+              type: array
+              items:
+                $ref: '#/components/schemas/MessageResponse'
+    Base64MediaResponse:
+      type: object
+      required: [mediaType, fileName, mimetype, base64]
+      properties:
+        mediaType:
+          type: string
+          description: The message type the media came from, such as imageMessage.
+        fileName:
+          type: string
+        mimetype:
+          type: string
+        base64:
+          type: string
+    SendContext:
+      type: object
+      description: >-
+        Context fields accepted by every send endpoint. Mentions apply to a group recipient
+        only; in a one-to-one chat there is nobody to mention and they are ignored.
+      properties:
+        quoted:
+          type: object
+          required: [key]
+          description: >-
+            The message to reply to. `message` is optional: given only `key.id`, the server
+            recovers the body from its own store. A key matching nothing sends unquoted
+            rather than failing.
+          properties:
+            key:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
+                remoteJid:
+                  type: string
+                fromMe:
+                  type: boolean
+                participant:
+                  type: string
+            message:
+              type: object
+              additionalProperties: true
+        mentioned:
+          type: array
+          items:
+            type: string
+          description: Numbers or JIDs to mention. Ignored outside a group.
+        mentionsEveryOne:
+          type: boolean
+          description: Mention every participant of the group. Takes precedence over `mentioned`.
+    SendTextInput:
+      allOf:
+        - $ref: '#/components/schemas/SendContext'
+        - type: object
+          required: [number, text]
+          properties:
+            number:
+              type: string
+              description: Bare phone number or qualified WhatsApp JID.
+            text:
+              type: string
+            delay:
+              type: integer
+              minimum: 0
+              description: Show the presence for this many milliseconds before delivering.
+            presence:
+              type: string
+              enum: [unavailable, available, composing, recording, paused]
+              default: composing
+            linkPreview:
+              type: boolean
+              description: Only an explicit false suppresses the preview.
+    SendMediaInput:
+      allOf:
+        - $ref: '#/components/schemas/SendContext'
+        - type: object
+          required: [number, mediatype, media]
+          properties:
+            number:
+              type: string
+              description: Bare phone number or qualified WhatsApp JID.
+            mediatype:
+              type: string
+              enum: [image, video, document, audio]
+              description: >-
+                `audio` is a file-style bubble; use /message/sendWhatsAppAudio for a
+                push-to-talk voice note.
+            media:
+              type: string
+              description: HTTP(S) URL or base64-encoded payload.
+            mimetype:
+              type: [string, 'null']
+              description: >-
+                Optional; null or blank counts as omitted. When omitted it is inferred, in order,
+                from the `fileName` extension, the URL path extension, the fetched response's
+                `content-type` (only when well-formed and not active content such as HTML, XML or
+                SVG), and the payload's leading bytes. An inferred type must also fit `mediatype`:
+                `image`, `video` and `audio` need a matching `image/*`, `video/*` or `audio/*`,
+                and a candidate that does not fit is skipped. A request where none identify it
+                gets a 400. An explicit `mimetype` is used as sent.
+            caption:
+              type: string
+            fileName:
+              type: string
+              description: >-
+                Document name shown to the recipient. For `mediatype: document` sent by URL it
+                defaults to the last path segment of the URL, stripped of control and invisible
+                characters, path separators, and trailing dots, given the extension of the resolved
+                mimetype when it has none, and capped at 255 characters. A
+                `fileName` you send is used as sent.
+            delay:
+              type: integer
+              minimum: 0
+            presence:
+              type: string
+              enum: [unavailable, available, composing, recording, paused]
+    SendAudioInput:
+      allOf:
+        - $ref: '#/components/schemas/SendContext'
+        - type: object
+          required: [number, audio]
+          properties:
+            number:
+              type: string
+              description: Bare phone number or qualified WhatsApp JID.
+            audio:
+              type: string
+              description: HTTP(S) URL or base64-encoded payload.
+            encoding:
+              type: boolean
+              default: true
+              description: >-
+                False sends the bytes untouched; the caller must already have encoded
+                ogg/opus.
+            delay:
+              type: integer
+              minimum: 0
+            presence:
+              type: string
+              enum: [unavailable, available, composing, recording, paused]
+              default: recording
+    SendAudioUpload:
+      type: object
+      required: [number]
+      anyOf:
+        - required: [audio]
+        - required: [file]
+      description: The multipart form of SendAudioInput; `file` takes precedence when both are present.
+      properties:
+        number:
+          type: string
+        audio:
+          type: string
+          description: HTTP(S) URL or base64-encoded payload.
+        file:
+          type: string
+          format: binary
+        encoding:
+          type: boolean
+        delay:
+          type: integer
+        presence:
+          type: string
+          enum: [unavailable, available, composing, recording, paused]
+    UpdateMessageInput:
+      type: object
+      required: [number, text, key]
+      properties:
+        number:
+          type: string
+        text:
+          type: string
+        key:
+          $ref: '#/components/schemas/MessageKey'
+    MessageKey:
+      type: object
+      required: [id, remoteJid, fromMe]
+      properties:
+        id:
+          type: string
+        remoteJid:
+          type: string
+        fromMe:
+          type: boolean
+        participant:
+          type: string
+    MessageResponse:
+      type: object
+      description: >-
+        The same normalized shape an inbound message takes, so the response, the stored row,
+        and the webhook body all agree.
+      required: [key, message, messageType, messageTimestamp, instanceId, status]
+      properties:
+        key:
+          $ref: '#/components/schemas/MessageKey'
+        pushName:
+          type: string
+          description: Omitted when WhatsApp sent none.
+        message:
+          type: object
+          additionalProperties: true
+        contextInfo:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+          description: Metadata beside the content, such as mentions and the quoted message. Omitted when empty.
+        messageType:
+          type: string
+        messageTimestamp:
+          type: integer
+          description: Unix seconds.
+        instanceId:
+          type: string
+          description: The instance that sent or received it.
+        source:
+          type: string
+          description: The device family the message came from.
+        status:
+          oneOf:
+            - type: string
+            - type: 'null'
+    WebhookConfigInput:
+      type: object
+      required: [webhook]
+      properties:
+        webhook:
+          type: object
+          required: [url]
+          properties:
+            url:
+              type: string
+            enabled:
+              type: boolean
+              default: true
+            headers:
+              oneOf:
+                - type: object
+                  additionalProperties:
+                    type: string
+                - type: 'null'
+              description: Omit to keep stored headers; use null to clear them.
+            signatureSecret:
+              oneOf:
+                - type: string
+                  minLength: 16
+                  maxLength: 512
+                - type: string
+                  const: ''
+                - type: 'null'
+              description: HMAC secret. Surrounding whitespace is trimmed; omit to keep the stored secret, or use null or an empty string to clear it.
+            signatureEnabled:
+              type: boolean
+              description: Whether deliveries include the X-Webhook-Signature header. A secret is required when true.
+            byEvents:
+              type: boolean
+              default: false
+            base64:
+              type: boolean
+              default: false
+            events:
+              type: array
+              description: Empty or omitted while enabled subscribes to all supported events.
+              items:
+                $ref: '#/components/schemas/EvolutionEvent'
+    WebhookConfigResponse:
+      type: object
+      required: [id, url, headers, hasSignatureSecret, signatureEnabled, enabled, events, webhookByEvents, webhookBase64, createdAt, updatedAt, instanceId]
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          format: uri
+        headers:
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: string
+            - type: 'null'
+        hasSignatureSecret:
+          type: boolean
+          description: Whether a signing secret is stored. The secret is write-only.
+        signatureEnabled:
+          type: boolean
+        enabled:
+          type: boolean
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvolutionEvent'
+        webhookByEvents:
+          type: boolean
+        webhookBase64:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        instanceId:
+          type: string
+    EvolutionEvent:
+      type: string
+      enum:
+        - QRCODE_UPDATED
+        - CONNECTION_UPDATE
+        - MESSAGES_UPSERT
+        - MESSAGES_EDITED
+        - MESSAGES_UPDATE
+        - MESSAGES_DELETE
+        - SEND_MESSAGE
+        - SEND_MESSAGE_UPDATE
+        - STATUS_UPDATE
+    WebhookEnvelope:
+      type: object
+      required: [event, instance, data, destination, date_time, server_url, apikey]
+      properties:
+        event:
+          type: string
+          description: Lowercase dotted delivered event name.
+        instance:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        destination:
+          type: string
+          format: uri
+        date_time:
+          type: string
+          format: date-time
+        sender:
+          type: string
+        server_url:
+          type: string
+          format: uri
+        apikey:
+          type: string
+          description: Empty compatibility field; it is not a secret.

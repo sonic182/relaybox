@@ -1,0 +1,10 @@
+{
+    "webhook": {
+        "enabled": true,
+        "url": "https://consumer.example/webhooks/whatsapp",
+        "headers": { "X-Customer": "acme" },
+        "byEvents": false,
+        "base64": false,
+        "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE"]
+    }
+}

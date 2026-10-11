@@ -1,0 +1,17 @@
+{
+    "key": {
+        "remoteJid": "5511888888888@s.whatsapp.net",
+        "fromMe": true,
+        "id": "SENT-AUDIO-1"
+    },
+    "message": {
+        "audioMessage": {
+            "ptt": true,
+            "mimetype": "audio/ogg; codecs=opus"
+        }
+    },
+    "messageType": "audioMessage",
+    "messageTimestamp": 1756555200,
+    "instanceId": "id-acme",
+    "status": "PENDING"
+}
