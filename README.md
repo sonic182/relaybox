@@ -29,7 +29,8 @@ pnpm run dev
 
 Replace the placeholder `API_KEY` in `.env` with a random value of at least 16 characters (for
 example `openssl rand -hex 32`); the app refuses to start with a shorter key or the placeholder.
-Then open <http://localhost:3000/login> and sign in with it.
+Then open <http://localhost:3000/login> and sign in with it. The interactive API reference is
+at <http://localhost:3000/redoc>.
 
 `API_KEY` is the only application credential, used by the dashboard login and by the JSON
 API's `apikey` header. Never commit `.env` or real credentials. All other settings are in
