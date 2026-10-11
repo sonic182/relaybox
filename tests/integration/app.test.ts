@@ -45,7 +45,7 @@ describe('web app', () => {
       .expect('HX-Redirect', '/dashboard');
 
     expect(login.headers['set-cookie']).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^relaybox_session=[0-9a-f]{64};/)]),
+      expect.arrayContaining([expect.stringMatching(/^relaybox_session=\d+\.[0-9a-f]{64}; Max-Age=604800;/)]),
     );
     expect(String(login.headers['set-cookie'])).not.toContain(TEST_TOKEN);
     expect(login.headers['set-cookie']).toEqual(

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
-import { API_KEY } from './config';
+import { API_KEY, SESSION_TTL_SECONDS } from './config';
 
 export const COOKIE_NAME = 'relaybox_session';
 export const LEGACY_COOKIE_NAME = 'api_key';
@@ -17,12 +17,24 @@ export function isValidToken(candidate: string | undefined): boolean {
   return secretEquals(candidate, API_KEY);
 }
 
-export function sessionToken(): string {
-  return createHmac('sha256', API_KEY).update('dashboard-session').digest('hex');
+const CLOCK_SKEW_MS = 60_000;
+
+function sessionSignature(issuedAt: string): string {
+  return createHmac('sha256', API_KEY).update(`dashboard-session:${issuedAt}`).digest('hex');
 }
 
-export function isValidSession(candidate: string | undefined): boolean {
-  return secretEquals(candidate, sessionToken());
+export function sessionToken(issuedAt = Date.now()): string {
+  return `${issuedAt}.${sessionSignature(String(issuedAt))}`;
+}
+
+export function isValidSession(candidate: string | undefined, now = Date.now()): boolean {
+  const match = /^(\d{1,15})\.([0-9a-f]{64})$/.exec(candidate ?? '');
+  if (!match) return false;
+
+  const issuedAt = Number(match[1]);
+  if (issuedAt > now + CLOCK_SKEW_MS || now - issuedAt >= SESSION_TTL_SECONDS * 1000) return false;
+
+  return secretEquals(match[2], sessionSignature(match[1]));
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {

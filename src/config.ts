@@ -38,6 +38,8 @@ export function parseApiKey(value: string | undefined): string {
 /** The single credential: the `apikey` header for the JSON API, and the dashboard login. */
 export const API_KEY = parseApiKey(process.env.API_KEY);
 
+export const SESSION_TTL_SECONDS = parsePositiveInt('SESSION_TTL_SECONDS', process.env.SESSION_TTL_SECONDS, 7 * 24 * 60 * 60);
+
 /** Minimum severity emitted by the application logger. */
 export const LOG_LEVEL = parseLogLevel(process.env.LOG_LEVEL);
 

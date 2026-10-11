@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { COOKIE_NAME, LEGACY_COOKIE_NAME, isValidSession, isValidToken, sessionToken } from '../auth';
+import { SESSION_TTL_SECONDS } from '../config';
 import { loginError, loginPage, loginThrottled } from '../views';
 
 export function home(req: Request, res: Response): void {
@@ -21,6 +22,7 @@ export function login(req: Request, res: Response): void {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
+    maxAge: SESSION_TTL_SECONDS * 1000,
   });
   res.set('HX-Redirect', '/dashboard').end();
 }
