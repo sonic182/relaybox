@@ -47,8 +47,10 @@ fetch without the API key.
 
 ## Development endpoint
 
-The separate `ENABLE_DEV_MCP` endpoint at `/dev/mcp` is local-only, unauthenticated, and
-exposes `project_eval`; keep it disabled outside local development. It permits arbitrary
+The separate `ENABLE_DEV_MCP` endpoint at `/dev/mcp` is unauthenticated and exposes
+`project_eval`. It only accepts connections whose peer address is loopback, so it is not
+reachable from the network, nor through Docker port publishing (run `pnpm run dev` on the
+host to use it); keep it disabled outside local development. It permits arbitrary
 project evaluation and is not an API. The `ENABLE_MCP_SERVER` endpoint is separate: it
 requires the `API_KEY` as a Bearer token and never exposes arbitrary code execution.
 

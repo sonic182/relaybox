@@ -1,6 +1,6 @@
 import { runInNewContext } from 'node:vm';
 import { inspect } from 'node:util';
-import express, { type Request, type Response, type Router } from 'express';
+import express, { type NextFunction, type Request, type Response, type Router } from 'express';
 import { localhostHostValidation, localhostOriginValidation } from '@modelcontextprotocol/express';
 import { McpServer, createMcpHandler } from '@modelcontextprotocol/server';
 import { toNodeHandler } from '@modelcontextprotocol/node';
@@ -8,6 +8,7 @@ import { z } from 'zod';
 import type { ChatService } from './chats';
 import type { Db } from './db';
 import type { InstanceService } from './instances';
+import { isLoopbackHost } from './net';
 import type { Logger } from 'pino';
 
 type DevMcpDependencies = {
@@ -19,6 +20,12 @@ type DevMcpDependencies = {
 
 function describe(value: unknown): string {
   return inspect(value, { depth: 5, maxArrayLength: 100, maxStringLength: 10_000, breakLength: 120 });
+}
+
+export function requireLoopbackPeer(req: Request, res: Response, next: NextFunction): void {
+  const address = req.socket.remoteAddress;
+  if (address && isLoopbackHost(address)) return next();
+  res.status(403).json({ error: 'The development MCP endpoint only accepts loopback connections' });
 }
 
 /**
@@ -95,6 +102,7 @@ export function createDevMcpRouter(dependencies: DevMcpDependencies): Router {
   }, { onerror: (err) => dependencies.logger.warn({ err }, 'dev mcp request failed') });
 
   const router = express.Router();
+  router.use(requireLoopbackPeer);
   router.use(localhostHostValidation());
   router.use(localhostOriginValidation());
   router.use(express.json({ limit: '32kb' }));

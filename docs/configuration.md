@@ -16,7 +16,7 @@ Copy `.env.example` to `.env` before starting the app:
 | `ALLOW_PRIVATE_WEBHOOK_TARGETS` | Permit webhook callbacks on the local network, over plain http | `false` |
 | `REMOTE_SERVER_URL` | Outbound `wss://` URL for remote control (`ws://` only for loopback/private hosts) | unset |
 | `REMOTE_SERVER_TOKEN` | Bearer token sent to `REMOTE_SERVER_URL`; required when it is set | unset |
-| `ENABLE_DEV_MCP` | Enable the unauthenticated local development MCP endpoint at `/dev/mcp` | `false` |
+| `ENABLE_DEV_MCP` | Enable the unauthenticated development MCP endpoint at `/dev/mcp` (loopback connections only) | `false` |
 | `ENABLE_MCP_SERVER` | Enable the authenticated MCP server | `false` |
 | `MCP_PATH` | Non-root literal MCP mount path (no trailing slash; outside existing HTTP route namespaces) | `/mcp` |
 | `MCP_ALLOWED_HOSTS` | Allowed Host/Origin hostnames (no scheme or port); unset restricts MCP to localhost | unset |
