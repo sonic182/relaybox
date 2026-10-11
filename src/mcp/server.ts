@@ -92,7 +92,7 @@ Side effects: send_* and update_message deliver real messages to real people and
 
 /** Builds a fresh server per connection, as `createMcpHandler` expects a factory. */
 export function createMcpServer(deps: McpDependencies): McpServer {
-  const server = new McpServer({ name: 'relaybox', version: '0.2.0' }, { instructions: MCP_INSTRUCTIONS });
+  const server = new McpServer({ name: 'relaybox', version: '0.2.1' }, { instructions: MCP_INSTRUCTIONS });
   for (const tool of selectMcpTools(createMcpTools(deps), deps.toolFilter)) register(server, tool, deps.logger);
   return server;
 }

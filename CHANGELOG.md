@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] 2026-10-11
+
 ### Security
 - Updated vulnerable dependencies: `proxy-addr` 2.0.8 (IP spoofing through IPv4-mapped IPv6 trusted subnets, which `TRUST_PROXY` relies on), `hono` 4.13.7 (unescaped strings in hono/jsx), `music-metadata` 11.16.1, `brace-expansion` 5.0.12, `sharp` 0.35.5 (librsvg) and `source-map-js` 1.2.2 (build-time only, not in the image). `sharp` and `source-map-js` come in through other packages, so `pnpm-workspace.yaml` pins them with `overrides`; drop those once baileys and tailwind resolve these versions on their own.
 
@@ -39,6 +41,7 @@ First tagged release.
 - PostgreSQL persistence through ZenStack, with committed migrations.
 - Dockerfile and `docker-compose.yml` setup.
 
-[Unreleased]: https://github.com/sonic182/relaybox/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/sonic182/relaybox/compare/0.2.1...HEAD
+[0.2.1]: https://github.com/sonic182/relaybox/compare/0.2.0..0.2.1
 [0.2.0]: https://github.com/sonic182/relaybox/compare/0.1.0..0.2.0
 [0.1.0]: https://github.com/sonic182/relaybox/compare/b3c72c1..0.1.0
