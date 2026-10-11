@@ -27,7 +27,7 @@ function describe(value: unknown): string {
  */
 export function createDevMcpRouter(dependencies: DevMcpDependencies): Router {
   const handler = createMcpHandler(() => {
-    const server = new McpServer({ name: 'relaybox-dev', version: '0.0.1' });
+    const server = new McpServer({ name: 'relaybox-dev', version: '0.1.0' });
 
     server.registerTool(
       'runtime_info',
