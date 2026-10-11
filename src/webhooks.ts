@@ -62,15 +62,15 @@ export function validateCallbackUrl(
 
   // A consumer on the LAN has no public name to get a certificate for, so opting into
   // private targets has to permit plain http to them as well.
-  const plaintextAllowed = isLoopbackHost(url.hostname) || (allowPrivate && isPrivateHost(url.hostname));
+  const plaintextAllowed = allowPrivate && (isLoopbackHost(url.hostname) || isPrivateHost(url.hostname));
   if (url.protocol === 'http:' && !plaintextAllowed) {
     return ['"url" must use https outside local development'];
   }
-  if (!isLoopbackHost(url.hostname) && isForbiddenHostname(url.hostname, allowPrivate)) {
+  if (isForbiddenHostname(url.hostname, allowPrivate)) {
     return [
       allowPrivate
         ? '"url" must not target a link-local address'
-        : '"url" must not target a private or link-local address',
+        : '"url" must not target a private, loopback or link-local address',
     ];
   }
 

@@ -55,13 +55,13 @@ export function isDevelopment(): boolean {
 
 /**
  * Development allows any http(s) callback URL. Outside development the policy is
- * https only, except http on loopback, and never a private or link-local host.
+ * https only, and never a loopback, private or link-local host unless opted in below.
  */
 export const ALLOW_INSECURE_WEBHOOK_URLS = isDevelopment();
 
 /**
- * Opt in to webhook targets on the local network (RFC 1918, IPv6 unique-local, `.local`
- * and `.internal` names), over plain http. Off by default: the guard exists so a stolen
+ * Opt in to webhook targets on this host or the local network (loopback, RFC 1918, IPv6
+ * unique-local, `.localhost`, `.local` and `.internal` names), over plain http. Off by default: the guard exists so a stolen
  * API key cannot turn the server into a probe of the network it sits in, and only the
  * operator knows whether their consumer really lives on the LAN.
  *

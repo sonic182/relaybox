@@ -27,10 +27,8 @@ describe('validateCallbackUrl', () => {
     expect(validateCallbackUrl('file:///etc/passwd', true)).toEqual(['"url" must use http or https']);
   });
 
-  it('requires https outside development, except on loopback', () => {
+  it('requires https outside development', () => {
     expect(validateCallbackUrl('https://consumer.example/hook', false)).toEqual([]);
-    expect(validateCallbackUrl('http://localhost:3000/hook', false)).toEqual([]);
-    expect(validateCallbackUrl('http://127.0.0.1:3000/hook', false)).toEqual([]);
     expect(validateCallbackUrl('http://consumer.example/hook', false)).toEqual([
       '"url" must use https outside local development',
     ]);
@@ -46,8 +44,15 @@ describe('validateCallbackUrl', () => {
       'https://printer.local/hook',
     ]) {
       expect(validateCallbackUrl(url, false, false)).toEqual([
-        '"url" must not target a private or link-local address',
+        '"url" must not target a private, loopback or link-local address',
       ]);
+    }
+  });
+
+  it('refuses loopback targets unless private targets are allowed', () => {
+    for (const url of ['http://localhost:3000/hook', 'http://127.0.0.1:3000/hook', 'https://localhost/hook', 'https://[::1]/hook']) {
+      expect(validateCallbackUrl(url, false, false)).not.toEqual([]);
+      expect(validateCallbackUrl(url, false, true)).toEqual([]);
     }
   });
 

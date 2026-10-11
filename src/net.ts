@@ -27,7 +27,7 @@ export function isPrivateHost(hostname: string): boolean {
 /** Reject names reserved for the local network and literal non-public addresses. */
 export function isForbiddenHostname(hostname: string, allowPrivate = false): boolean {
   const host = normalize(hostname);
-  if (host === 'localhost' || host.endsWith('.localhost')) return true;
+  if (host === 'localhost' || host.endsWith('.localhost')) return !allowPrivate;
   if (host.endsWith('.local') || host.endsWith('.internal')) return !allowPrivate;
 
   return ipaddr.isValid(host) && isForbiddenIp(host, allowPrivate);
@@ -39,5 +39,5 @@ export function isForbiddenIp(ip: string, allowPrivate = false): boolean {
   if (!ipaddr.isValid(value)) return true;
 
   const range = ipaddr.process(value).range();
-  return range !== 'unicast' && !(allowPrivate && PRIVATE_RANGES.has(range));
+  return range !== 'unicast' && !(allowPrivate && (PRIVATE_RANGES.has(range) || range === 'loopback'));
 }

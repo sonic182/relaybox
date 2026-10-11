@@ -6,7 +6,7 @@ import { isIP } from 'node:net';
 import type { Logger } from 'pino';
 import { ALLOW_INSECURE_WEBHOOK_URLS, ALLOW_PRIVATE_WEBHOOK_TARGETS } from './config';
 import type { Db } from './db';
-import { isForbiddenIp, isLoopbackHost } from './net';
+import { isForbiddenIp } from './net';
 import type { DeliveryHandler, DeliveryJob, DeliveryOutcome, DeliveryQueue } from './queue';
 
 export type DeliveryRequest = {
@@ -109,9 +109,6 @@ export function createDeliveryHandler({
     if (allowInsecureUrls) return undefined;
 
     const hostname = url.hostname.replace(/^\[|\]$/g, '');
-    // Production deliberately permits a loopback callback (the only allowed HTTP
-    // exception), so do not reject its expected loopback resolution here.
-    if (isLoopbackHost(hostname)) return undefined;
 
     const literal = /^[\d.]+$/.test(hostname) || hostname.includes(':');
     const addresses = literal ? [hostname] : await resolveHost(hostname);

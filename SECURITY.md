@@ -24,5 +24,5 @@ can read and send messages as the paired numbers.
   the Baileys session credentials, message history, and downloaded media.
 - Keep `ENABLE_DEV_MCP` off. It exposes unauthenticated arbitrary code execution and is meant
   only for local development.
-- Leave `ALLOW_PRIVATE_WEBHOOK_TARGETS` off unless webhook consumers really live on your LAN.
-  Without it, a leaked `API_KEY` cannot point webhooks at internal services.
+- Leave `ALLOW_PRIVATE_WEBHOOK_TARGETS` off unless webhook consumers really live on this host or
+  your LAN. Without it, a leaked `API_KEY` cannot point webhooks at loopback or internal services.
