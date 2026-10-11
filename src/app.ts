@@ -3,7 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import type { Logger } from 'pino';
-import { requireAuth } from './auth';
+import { requireAuth, requireSameOrigin } from './auth';
 import { home, login, logout, showLogin } from './controllers/auth';
 import { createDashboardController } from './controllers/dashboard';
 import { redoc, swaggerJson } from './controllers/documentation';
@@ -81,6 +81,7 @@ export function createApp({
 
   // Evolution-compatible JSON API: its own apikey auth and error format.
   app.use(API_PREFIXES, createApiRouter({ instanceService, chatService, sendService, logger, controlService }));
+  app.use(requireSameOrigin);
 
   app.get('/', home);
   app.get('/login', showLogin);

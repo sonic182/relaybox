@@ -47,6 +47,20 @@ describe('web app', () => {
     await agent.get('/').expect(302).expect('Location', '/dashboard');
   });
 
+  it('rejects cross-site form posts but accepts same-origin ones', async () => {
+    const agent = request.agent(createTestApp());
+    await agent.post('/login').type('form').send({ token: TEST_TOKEN }).expect(200);
+
+    await agent.post('/logout').set('Sec-Fetch-Site', 'cross-site').expect(403);
+    await agent.post('/logout').set('Sec-Fetch-Site', 'same-site').expect(403);
+    await agent.post('/logout').set('Origin', 'https://evil.example').expect(403);
+    await agent.post('/logout').set('Origin', 'null').expect(403);
+    await agent.get('/dashboard').set('Sec-Fetch-Site', 'cross-site').expect(200);
+
+    await agent.post('/logout').set('Sec-Fetch-Site', 'same-origin').expect(200);
+    await agent.post('/logout').set('Host', 'relaybox.test').set('Origin', 'https://relaybox.test').expect(200);
+  });
+
   it('protects the dashboard and clears the session at logout', async () => {
     const agent = request.agent(createTestApp());
 
