@@ -46,8 +46,8 @@ importers:
         specifier: ^8.7.1
         version: 8.7.1(express@5.2.1(supports-color@10.2.2))(supports-color@10.2.2)
       hono:
-        specifier: ^4.13.7
-        version: 4.13.7
+        specifier: ^4.13.11
+        version: 4.13.11
       ipaddr.js:
         specifier: ^2.5.0
         version: 2.5.0
@@ -1960,8 +1960,8 @@ packages:
   help-me@5.0.0:
     resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
 
-  hono@4.13.7:
-    resolution: {integrity: sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==}
+  hono@4.13.11:
+    resolution: {integrity: sha512-/SMX/RQNJn7oNmFwH6DtwDqcrzZU2otm1FD6OJe2cWF6cfy/F8hq0XVBv7xW3FTJshRQwuBnXHDq2kNsdZnshg==}
     engines: {node: '>=16.9.0'}
 
   hookified@1.15.1:
@@ -3489,9 +3489,9 @@ snapshots:
 
   '@hapi/hoek@9.3.0': {}
 
-  '@hono/node-server@1.19.17(hono@4.13.7)':
+  '@hono/node-server@1.19.17(hono@4.13.11)':
     dependencies:
-      hono: 4.13.7
+      hono: 4.13.11
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -3664,9 +3664,9 @@ snapshots:
 
   '@modelcontextprotocol/node@2.1.1(@modelcontextprotocol/server@2.3.0)':
     dependencies:
-      '@hono/node-server': 1.19.17(hono@4.13.7)
+      '@hono/node-server': 1.19.17(hono@4.13.11)
       '@modelcontextprotocol/server': 2.3.0
-      hono: 4.13.7
+      hono: 4.13.11
 
   '@modelcontextprotocol/server@2.3.0':
     dependencies:
@@ -4176,21 +4176,21 @@ snapshots:
 
   '@zenstackhq/cli@3.9.2(express@5.2.1(supports-color@10.2.2))(kysely@0.29.5)(pg@8.23.0)(supports-color@10.2.2)(typescript@5.9.3)':
     dependencies:
-      '@hono/node-server': 1.19.17(hono@4.13.7)
+      '@hono/node-server': 1.19.17(hono@4.13.11)
       '@zenstackhq/common-helpers': 3.9.2
       '@zenstackhq/language': 3.9.2
       '@zenstackhq/orm': 3.9.2(pg@8.23.0)(zod@4.5.4)
       '@zenstackhq/plugin-policy': 3.9.2(kysely@0.29.5)(pg@8.23.0)(zod@4.5.4)
       '@zenstackhq/schema': 3.9.2
       '@zenstackhq/sdk': 3.9.2
-      '@zenstackhq/server': 3.9.2(express@5.2.1(supports-color@10.2.2))(hono@4.13.7)(pg@8.23.0)(zod@4.5.4)
+      '@zenstackhq/server': 3.9.2(express@5.2.1(supports-color@10.2.2))(hono@4.13.11)(pg@8.23.0)(zod@4.5.4)
       chokidar: 5.0.0
       colors: 1.4.0
       commander: 8.3.0
       cors: 2.8.6
       dotenv: 17.4.2
       execa: 9.6.1
-      hono: 4.13.7
+      hono: 4.13.11
       jiti: 2.7.0
       langium: 4.2.4
       mixpanel: 0.18.1(supports-color@10.2.2)
@@ -4274,7 +4274,7 @@ snapshots:
       ts-pattern: 5.9.0
       typescript: 6.0.3
 
-  '@zenstackhq/server@3.9.2(express@5.2.1(supports-color@10.2.2))(hono@4.13.7)(pg@8.23.0)(zod@4.5.4)':
+  '@zenstackhq/server@3.9.2(express@5.2.1(supports-color@10.2.2))(hono@4.13.11)(pg@8.23.0)(zod@4.5.4)':
     dependencies:
       '@zenstackhq/common-helpers': 3.9.2
       '@zenstackhq/orm': 3.9.2(pg@8.23.0)(zod@4.5.4)
@@ -4288,7 +4288,7 @@ snapshots:
       zod-validation-error: 4.0.2(zod@4.5.4)
     optionalDependencies:
       express: 5.2.1(supports-color@10.2.2)
-      hono: 4.13.7
+      hono: 4.13.11
     transitivePeerDependencies:
       - better-sqlite3
       - mysql2
@@ -5027,7 +5027,7 @@ snapshots:
 
   help-me@5.0.0: {}
 
-  hono@4.13.7: {}
+  hono@4.13.11: {}
 
   hookified@1.15.1: {}
 
