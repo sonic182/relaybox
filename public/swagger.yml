@@ -46,7 +46,7 @@ paths:
         - DashboardSession: []
       responses:
         '200':
-          description: HTML settings page with the stored history option.
+          description: HTML settings page with the stored history and presence options.
         '302':
           description: Redirect to login when unauthenticated.
         '400':
@@ -65,6 +65,10 @@ paths:
               type: object
               properties:
                 syncFullHistory:
+                  type: string
+                  enum: ['on']
+                  description: Checked means enabled; omitted means disabled.
+                alwaysOnline:
                   type: string
                   enum: ['on']
                   description: Checked means enabled; omitted means disabled.
@@ -667,10 +671,12 @@ paths:
     post:
       summary: Configure instance settings
       description: >-
-        Only `syncFullHistory` is supported. Unlike the reference, `false` ignores the history
-        WhatsApp sends while pairing instead of still receiving the recent history. WhatsApp
-        only sends that history while pairing, so an already paired instance must be logged out
-        and scanned again after enabling it.
+        Only `syncFullHistory` and `alwaysOnline` are supported. Unlike the reference, each is
+        optional and an omitted one keeps its stored value, but at least one is required.
+        Unlike the reference, `syncFullHistory: false` ignores the history WhatsApp sends while
+        pairing instead of still receiving the recent history. WhatsApp only sends that history
+        while pairing, so an already paired instance must be logged out and scanned again after
+        enabling it. A changed `alwaysOnline` applies at once to a connected instance.
       operationId: setSettings
       parameters:
         - $ref: '#/components/parameters/InstanceName'
@@ -682,6 +688,7 @@ paths:
               $ref: '#/components/schemas/SettingsInput'
             example:
               syncFullHistory: true
+              alwaysOnline: false
       responses:
         '201':
           description: Stored settings.
@@ -698,12 +705,13 @@ paths:
                       instanceName:
                         type: string
                       settings:
-                        $ref: '#/components/schemas/SettingsInput'
+                        $ref: '#/components/schemas/Settings'
               example:
                 settings:
                   instanceName: acme
                   settings:
                     syncFullHistory: true
+                    alwaysOnline: false
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -722,9 +730,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SettingsInput'
+                $ref: '#/components/schemas/Settings'
               example:
                 syncFullHistory: false
+                alwaysOnline: false
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -962,12 +971,30 @@ components:
                 $ref: '#/components/schemas/EvolutionEvent'
     SettingsInput:
       type: object
-      required: [syncFullHistory]
+      minProperties: 1
       additionalProperties: false
       properties:
         syncFullHistory:
           type: boolean
           description: Import the history WhatsApp sends while pairing; false ignores it.
+        alwaysOnline:
+          type: boolean
+          description: >-
+            Show the instance as online to contacts while it is connected. False marks it
+            offline, so the phone keeps receiving notifications.
+    Settings:
+      type: object
+      required: [syncFullHistory, alwaysOnline]
+      additionalProperties: false
+      properties:
+        syncFullHistory:
+          type: boolean
+          default: false
+          description: Import the history WhatsApp sends while pairing; false ignores it.
+        alwaysOnline:
+          type: boolean
+          default: false
+          description: Show the instance as online to contacts while it is connected.
     InstanceQrCode:
       type: object
       properties:

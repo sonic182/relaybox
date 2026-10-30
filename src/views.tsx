@@ -187,9 +187,19 @@ export function instanceSettingsPage(name: string, settings: SettingsResponse, n
                 {notice.error ? <p role="alert" class="text-rose-600">{notice.error}</p> : null}
                 <form method="post" action={`/instances/${name}/settings`}>
                     <HistoryOption enabled={settings.syncFullHistory} />
+                    <p class="text-sm text-slate-500 mb-4">To import history after saving, return to Instances and choose “Unpair to re-scan QR”, then “Re-scan QR”.</p>
+                    <div class="my-4">
+                        <label class="flex items-center gap-2 font-medium">
+                            <input type="checkbox" name="alwaysOnline" checked={settings.alwaysOnline} aria-describedby="online-help" />
+                            Always show as online
+                        </label>
+                        <p id="online-help" class="text-sm text-slate-500 mt-2">
+                            While connected, contacts see this number as online. Off keeps it offline, so the phone keeps receiving notifications.
+                            Applies immediately to a connected instance.
+                        </p>
+                    </div>
                     <button type="submit" class="bg-slate-800 text-white rounded px-3 py-2">Save settings</button>
                 </form>
-                <p class="text-sm text-slate-500 mt-4">After saving, return to Instances and choose “Unpair to re-scan QR”, then “Re-scan QR”.</p>
             </main>
         </Layout>,
     );

@@ -56,12 +56,20 @@ function createInput(body: unknown): InstanceCreateInput {
   return value as InstanceCreateInput;
 }
 
+const SETTINGS_FIELDS = ['syncFullHistory', 'alwaysOnline'] as const;
+
 function settingsInput(body: unknown): SettingsInput {
   const value = bodyObject(body);
-  const unsupported = Object.keys(value).find((key) => key !== 'syncFullHistory');
+  const unsupported = Object.keys(value).find((key) => !(SETTINGS_FIELDS as readonly string[]).includes(key));
   if (unsupported) throw badRequest(`Unsupported field: ${unsupported}`);
-  if (typeof value.syncFullHistory !== 'boolean') throw badRequest('"syncFullHistory" must be a boolean');
-  return { syncFullHistory: value.syncFullHistory };
+  if (!SETTINGS_FIELDS.some((field) => field in value)) throw badRequest(`Expected at least one of: ${SETTINGS_FIELDS.join(', ')}`);
+  const input: SettingsInput = {};
+  for (const field of SETTINGS_FIELDS) {
+    if (value[field] === undefined) continue;
+    if (typeof value[field] !== 'boolean') throw badRequest(`"${field}" must be a boolean`);
+    input[field] = value[field];
+  }
+  return input;
 }
 
 function renameInput(body: unknown): string {

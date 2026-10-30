@@ -17,6 +17,11 @@ describe('instance settings UI', () => {
     expect(await db.instanceSettings.findFirst()).toMatchObject({ syncFullHistory: true });
     await agent.post('/instances/sales/settings').type('form').send({}).expect(200);
     expect(await db.instanceSettings.findFirst()).toMatchObject({ syncFullHistory: false });
+
+    expect(enabled.text).not.toMatch(/name="alwaysOnline"[^>]*checked/);
+    await agent.post('/instances/sales/settings').type('form').send({ alwaysOnline: 'on' }).expect(200);
+    expect((await agent.get('/instances/sales/settings').expect(200)).text).toMatch(/name="alwaysOnline"[^>]*checked/);
+    expect(await db.instanceSettings.findFirst()).toMatchObject({ syncFullHistory: false, alwaysOnline: true });
   });
 
   it('rejects invalid form input and unknown instances and requires login', async () => {
@@ -24,6 +29,7 @@ describe('instance settings UI', () => {
     await db.instanceRecord.create({ data: { name: 'sales' } });
     const agent = await createAuthenticatedAgent();
     await agent.post('/instances/sales/settings').type('form').send({ syncFullHistory: 'yes' }).expect(400);
+    await agent.post('/instances/sales/settings').type('form').send({ alwaysOnline: 'yes' }).expect(400);
     expect(await db.instanceSettings.count()).toBe(0);
     await agent.get('/instances/missing/settings').expect(404);
     await agent.post('/instances/missing/settings').type('form').send({}).expect(404);

@@ -35,6 +35,7 @@ describe('instance events', () => {
       disconnectInstance: async () => {},
       logoutInstance: async () => {},
       reconnectInstance: async () => {},
+      setOnlinePresence: async () => {},
       deleteInstance: async () => {},
       restoreInstances: async () => {},
       subscribe: (callback) => {

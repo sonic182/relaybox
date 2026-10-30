@@ -116,6 +116,7 @@ export function createFakeInstanceService(): InstanceService {
       const instance = instances.find((item) => item.name === name);
       if (instance) instance.status = 'open';
     }),
+    setOnlinePresence: vi.fn(async () => {}),
     deleteInstance: vi.fn(async (name) => {
       const index = instances.findIndex((instance) => instance.name === name);
       if (index >= 0) instances.splice(index, 1);
@@ -150,7 +151,7 @@ type AppDependencies = Parameters<typeof createApp>[0];
 export function createTestApp(deps: Partial<AppDependencies> = {}) {
   const instanceService = deps.instanceService ?? createFakeInstanceService();
   const webhookService = deps.webhookService ?? createWebhookService({ db: createTestDb() });
-  const settingsService = deps.settingsService ?? createSettingsService({ db: createTestDb() });
+  const settingsService = deps.settingsService ?? createSettingsService({ db: createTestDb(), applyPresence: instanceService.setOnlinePresence });
   return createApp({
     settingsService,
     sendService: createSendService({ db: createTestDb(), logger: silentLogger() }),

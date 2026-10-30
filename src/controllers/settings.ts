@@ -10,13 +10,15 @@ export function createSettingsController(service: SettingsService) {
     const name = readInstanceName(req, res);
     if (!name) return;
     try {
-      const value = req.body?.syncFullHistory;
-      if (save && value !== undefined && value !== 'on') {
-        res.status(400).send(instanceSettingsPage(name, await service.getSettings(name), { error: 'Invalid history sync option' }));
+      // An unchecked checkbox is omitted from the form, so absent means off.
+      const history = req.body?.syncFullHistory;
+      const online = req.body?.alwaysOnline;
+      if (save && [history, online].some((value) => value !== undefined && value !== 'on')) {
+        res.status(400).send(instanceSettingsPage(name, await service.getSettings(name), { error: 'Invalid settings option' }));
         return;
       }
       const settings = save
-        ? await service.setSettings(name, { syncFullHistory: value === 'on' })
+        ? await service.setSettings(name, { syncFullHistory: history === 'on', alwaysOnline: online === 'on' })
         : await service.getSettings(name);
       res.send(instanceSettingsPage(name, settings, { saved: save }));
     } catch (err) {

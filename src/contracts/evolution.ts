@@ -83,19 +83,26 @@ export type WebhookConfigResponse = {
 };
 
 /**
- * The only reference setting implemented. Unlike the reference, `false` ignores the history
- * WhatsApp sends while pairing instead of still receiving the recent history.
+ * The reference settings implemented. Unlike the reference, `syncFullHistory: false` ignores the
+ * history WhatsApp sends while pairing instead of still receiving the recent history.
  */
-export type SettingsInput = {
+export type Settings = {
   syncFullHistory: boolean;
+  alwaysOnline: boolean;
 };
 
+/**
+ * `POST /settings/set` body. The reference requires every setting; here each is optional and
+ * an omitted one keeps its stored value, so clients that only know `syncFullHistory` still work.
+ */
+export type SettingsInput = Partial<Settings>;
+
 /** `GET /settings/find` returns the settings flat, as the reference does. */
-export type SettingsResponse = SettingsInput;
+export type SettingsResponse = Settings;
 
 /** `POST /settings/set` echoes the stored settings under the instance name, as the reference does. */
 export type SettingsSetResponse = {
-  settings: { instanceName: string; settings: SettingsInput };
+  settings: { instanceName: string; settings: Settings };
 };
 
 /** Baileys presence values; shown to the recipient during a send `delay`. */

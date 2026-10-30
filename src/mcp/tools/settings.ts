@@ -12,12 +12,13 @@ export function createSettingsTools(control: ControlService): McpTool[] {
     defineTool({
       name: 'set_settings',
       title: 'Configure instance settings',
-      description: 'Set whether an instance imports the chat history WhatsApp sends while pairing. WhatsApp only sends it during pairing, so for an instance that is already paired, enable it and then use logout_instance and scan a new QR.',
+      description: 'Change instance settings; omitted settings keep their value, but give at least one. syncFullHistory imports the chat history WhatsApp sends while pairing; WhatsApp only sends it during pairing, so for an instance that is already paired, enable it and then use logout_instance and scan a new QR. alwaysOnline shows the number as online to contacts while connected and applies immediately.',
       inputSchema: z.object({
         instanceName,
-        syncFullHistory: z.boolean().describe('true imports the history sent while pairing; false ignores it.'),
+        syncFullHistory: z.boolean().optional().describe('true imports the history sent while pairing; false ignores it.'),
+        alwaysOnline: z.boolean().optional().describe('true shows the number as online while connected; false keeps it offline so the phone keeps notifications.'),
       }),
-      handler: ({ instanceName: name, syncFullHistory }) => run('POST', `/settings/set/${name}`, { syncFullHistory }),
+      handler: ({ instanceName: name, ...settings }) => run('POST', `/settings/set/${name}`, settings),
     }),
 
     defineTool({

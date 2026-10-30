@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `alwaysOnline` instance setting (dashboard **Edit instance settings**, `POST /settings/set`, MCP `set_settings`). Off by default: a connected instance no longer shows as online to contacts, and the phone keeps receiving notifications. Turn it on to restore the previous behavior; a change applies at once to a connected instance. `POST /settings/set` now accepts either setting alone and keeps the other. Migration: `InstanceSettings` gains `alwaysOnline`.
+
 ## [0.2.1] 2026-10-11
 
 ### Security

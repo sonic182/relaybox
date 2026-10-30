@@ -13,7 +13,7 @@ import { transcodeToOpus } from './audio';
 import { fetchRemoteMedia, InvalidMediaError, type ResolvedMedia } from './mediaFetch';
 import { capFileName, fileNameFromUrl, inferMimetype, withExtension } from './mimeTypes';
 import { backoffMs } from './queue';
-import { isHistorySyncEnabled } from './settings';
+import { isHistorySyncEnabled, readSettings } from './settings';
 import { isChatAlias, type ChatAlias } from './chatIdentity';
 
 /** Downloaded media bytes live here; files are keyed by instance and message id. */
@@ -176,6 +176,8 @@ export type InstanceService = {
   /** Unpairs the WhatsApp session, unlike `disconnectInstance`; a later connect needs a fresh QR. */
   logoutInstance(name: string): Promise<void>;
   reconnectInstance(name: string): Promise<void>;
+  /** Shows a connected instance as online (`available`) or offline (`unavailable`) to contacts; a no-op otherwise. */
+  setOnlinePresence(name: string, online: boolean): Promise<void>;
   deleteInstance(name: string): Promise<void>;
   restoreInstances(): Promise<void>;
   subscribe(listener: InstanceEventListener): () => void;
@@ -649,7 +651,16 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
     } = await import('baileys');
 
     const { state, saveCreds } = await createPostgresAuthState(db, instance.id, { BufferJSON, initAuthCreds, proto });
-    const sock = makeWASocket({ auth: state, logger: BAILEYS_LOGGER });
+    // Off sends `unavailable` on connect, so contacts do not see the number online and the
+    // phone keeps receiving notifications. A cosmetic setting must not block connecting.
+    const alwaysOnline = await readSettings(db, instance.id).then(
+      (settings) => settings.alwaysOnline,
+      (err: unknown) => {
+        logger.warn({ err, instance: instance.name }, 'presence setting read failed; connecting offline');
+        return false;
+      },
+    );
+    const sock = makeWASocket({ auth: state, logger: BAILEYS_LOGGER, markOnlineOnConnect: alwaysOnline });
     instance.sock = sock;
 
     sock.ev.on('creds.update', saveCreds);
@@ -1225,6 +1236,17 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
         await reconnect;
       } finally {
         if (reconnects.get(name) === reconnect) reconnects.delete(name);
+      }
+    },
+
+    async setOnlinePresence(name: string, online: boolean): Promise<void> {
+      const instance = instances.get(name);
+      if (!instance?.sock || instance.status !== 'open') return;
+      try {
+        await instance.sock.sendPresenceUpdate(online ? 'available' : 'unavailable');
+      } catch (err) {
+        // The next connect applies the stored setting anyway.
+        logger.warn({ err, instance: name }, 'presence update failed');
       }
     },
 

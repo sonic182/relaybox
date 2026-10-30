@@ -12,6 +12,7 @@ import {
   type InstanceEvent,
 } from '../../src/instances';
 import { fetchRemoteMedia } from '../../src/mediaFetch';
+import { createSettingsService } from '../../src/settings';
 import updates from '../fixtures/evolution/messages-update.baileys.json';
 import { createTestDb, silentLogger } from '../helpers';
 
@@ -28,6 +29,8 @@ type MockSocket = {
   sendMessage?: unknown;
   groupFetchAllParticipating?: () => Promise<unknown>;
   updateMediaMessage?: () => Promise<void>;
+  markOnlineOnConnect?: boolean;
+  sendPresenceUpdate?: (type: string) => Promise<void>;
 };
 
 // Every mocked socket, so a test can drive the Baileys callbacks and stub its sends.
@@ -55,10 +58,12 @@ vi.mock('baileys', async (importOriginal) => {
   const { EventEmitter } = await import('node:events');
 
   return {
-    default: ({ auth }: { auth: MockSocket['auth'] }) => {
+    default: ({ auth, markOnlineOnConnect }: Pick<MockSocket, 'auth' | 'markOnlineOnConnect'>) => {
       const sock = {
         ev: new EventEmitter(),
         auth,
+        markOnlineOnConnect,
+        sendPresenceUpdate: vi.fn(async () => {}),
         user: { id: '5511999999999:1@s.whatsapp.net' },
         end: () => {},
         logout: async () => {},
@@ -172,6 +177,23 @@ describe('instance persistence', () => {
     await expect(second).rejects.toBeInstanceOf(InstanceAlreadyExistsError);
     await expect(first).resolves.toMatchObject({ name: 'acme' });
     expect(sockets).toHaveLength(1);
+  });
+});
+
+describe('online presence', () => {
+  it('connects offline by default, applies a change live, and reconnects with the stored setting', async () => {
+    const { db, service } = serviceWith();
+    await service.createInstance('acme');
+    expect(socket().markOnlineOnConnect).toBe(false);
+
+    socket().ev.emit('connection.update', { connection: 'open' });
+    const settings = createSettingsService({ db, applyPresence: service.setOnlinePresence });
+    await settings.setSettings('acme', { alwaysOnline: true });
+    expect(socket().sendPresenceUpdate).toHaveBeenCalledWith('available');
+
+    const restarted = createInstanceService({ db, logger: silentLogger() });
+    await restarted.restoreInstances();
+    expect(socket().markOnlineOnConnect).toBe(true);
   });
 });
 
@@ -996,7 +1018,7 @@ describe('history sync from the socket', () => {
   it('imports history after a transient settings read failure', async () => {
     const db = createTestDb();
     const settings = db.instanceSettings;
-    const read = vi.fn(settings.findUnique.bind(settings)).mockRejectedValueOnce(new Error('temporary outage'));
+    const read = vi.fn(settings.findUnique.bind(settings));
     const failingDb = new Proxy(db, {
       get(target, property, receiver) {
         if (property === 'instanceSettings') return { ...settings, findUnique: read };
@@ -1005,6 +1027,8 @@ describe('history sync from the socket', () => {
     });
     const { service } = serviceWith(failingDb);
     const instance = await service.createInstance('acme');
+    // Connecting reads the presence setting; only the history reads below count.
+    read.mockClear().mockRejectedValueOnce(new Error('temporary outage'));
     await db.instanceSettings.create({ data: { instanceId: instance.id, syncFullHistory: true } });
     const events: InstanceEvent[] = [];
     service.subscribe((event) => {
