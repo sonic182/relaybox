@@ -868,6 +868,16 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
         instance.loggedOut = false;
         instance.reconnectAttempts = 0;
         notifyUpdated(instance, 'connection');
+        // A change saved while connecting skipped the live push and Baileys sent the value read
+        // before the socket opened; send the stored one if they differ.
+        void readSettings(db, instance.id)
+          .then((settings) => {
+            if (settings.alwaysOnline === alwaysOnline || instance.sock !== sock) return;
+            return sock.sendPresenceUpdate(settings.alwaysOnline ? 'available' : 'unavailable');
+          })
+          .catch((err) => {
+            logger.debug({ err, instance: instance.name }, 'presence re-check failed');
+          });
         // Baileys only emits group metadata after an explicit fetch on a reconnect.
         void sock.groupFetchAllParticipating().catch((err) => {
           logger.debug({ err, instance: instance.name }, 'group metadata sync failed');

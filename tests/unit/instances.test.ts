@@ -195,6 +195,30 @@ describe('online presence', () => {
     await restarted.restoreInstances();
     expect(socket().markOnlineOnConnect).toBe(true);
   });
+
+  it('sends a value saved while connecting once the socket opens', async () => {
+    const { db, service } = serviceWith();
+    const instance = await service.createInstance('acme');
+    await db.instanceSettings.create({ data: { instanceId: instance.id, alwaysOnline: true } });
+
+    socket().ev.emit('connection.update', { connection: 'open' });
+    await vi.waitFor(() => expect(socket().sendPresenceUpdate).toHaveBeenCalledWith('available'));
+  });
+
+  it('connects offline when the setting cannot be read', async () => {
+    const db = createTestDb();
+    const settings = db.instanceSettings;
+    const failingDb = new Proxy(db, {
+      get(target, property, receiver) {
+        if (property === 'instanceSettings') return { ...settings, findUnique: vi.fn().mockRejectedValue(new Error('outage')) };
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const { service } = serviceWith(failingDb);
+
+    await expect(service.createInstance('acme')).resolves.toMatchObject({ name: 'acme' });
+    expect(socket().markOnlineOnConnect).toBe(false);
+  });
 });
 
 describe('renaming an instance', () => {

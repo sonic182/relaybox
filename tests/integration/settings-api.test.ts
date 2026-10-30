@@ -64,7 +64,7 @@ describe('settings API', () => {
     await request(app).get('/settings/find/acme').expect(401);
   });
 
-  it('stores syncFullHistory given when the instance is created', async () => {
+  it('stores the settings given when the instance is created', async () => {
     const instanceService = createFakeInstanceService();
     const db = createTestDb();
     const created = instanceService.createInstance.bind(instanceService);
@@ -87,10 +87,11 @@ describe('settings API', () => {
     await request(app)
       .post('/instance/create')
       .set('apikey', API_KEY)
-      .send({ instanceName: 'sales', syncFullHistory: true })
+      .send({ instanceName: 'sales', syncFullHistory: true, alwaysOnline: true })
       .expect(201);
 
     const found = await request(app).get('/settings/find/sales').set('apikey', API_KEY).expect(200);
-    expect(found.body).toEqual({ syncFullHistory: true, alwaysOnline: false });
+    expect(found.body).toEqual({ syncFullHistory: true, alwaysOnline: true });
+    await request(app).post('/instance/create').set('apikey', API_KEY).send({ instanceName: 'other', alwaysOnline: 'yes' }).expect(400);
   });
 });

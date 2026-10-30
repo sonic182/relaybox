@@ -51,7 +51,7 @@ export function createSettingsService({ db, applyPresence }: { db: Db; applyPres
         update: data,
         select: SETTINGS_FIELDS,
       });
-      // The socket only reads the setting when it connects, so a change must reach it now.
+      // The socket only reads the setting when it connects, so a given value is pushed now.
       if (alwaysOnline !== undefined) await applyPresence?.(instanceName, row.alwaysOnline);
       return row;
     },

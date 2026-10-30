@@ -25,6 +25,7 @@ export function createInstanceTools(control: ControlService): McpTool[] {
         qrcode: z.boolean().optional().describe('Wait for the pairing QR and include it in the response.'),
         integration: z.literal('WHATSAPP-BAILEYS').optional().describe('The only supported integration; may be omitted.'),
         syncFullHistory: z.boolean().optional().describe('Import the chat history WhatsApp sends while pairing. Off by default; it must be on before the QR is scanned.'),
+        alwaysOnline: z.boolean().optional().describe('Show the number as online to contacts while connected. Off by default.'),
         webhook: z.record(z.string(), z.unknown()).optional().describe('Initial webhook configuration; same fields as set_webhook, which is simpler to use afterwards.'),
       }),
       handler: async (args) => {

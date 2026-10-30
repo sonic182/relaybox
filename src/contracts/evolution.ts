@@ -204,6 +204,7 @@ export type InstanceCreateInput = {
   integration?: 'WHATSAPP-BAILEYS';
   webhook?: WebhookConfigInput['webhook'];
   syncFullHistory?: boolean;
+  alwaysOnline?: boolean;
 };
 
 export type InstanceListItem = {

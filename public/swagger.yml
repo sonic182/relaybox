@@ -931,6 +931,12 @@ components:
           description: >-
             Import the history WhatsApp sends while pairing. Off by default, in which case that
             history is ignored. See the instance settings endpoints to change it later.
+        alwaysOnline:
+          type: boolean
+          default: false
+          description: >-
+            Show the instance as online to contacts while it is connected. Off by default. See
+            the instance settings endpoints to change it later.
         webhook:
           type: object
           required: [url]

@@ -91,8 +91,8 @@ reported without changes. Repair does not publish webhooks or fetch WhatsApp his
 
 ## Differences from Evolution API
 
-Relaybox follows the reference's `syncFullHistory` setting and its `/settings/set` and
-`/settings/find` endpoints, but the meaning differs:
+Relaybox follows the reference's `syncFullHistory` and `alwaysOnline` settings and its
+`/settings/set` and `/settings/find` endpoints, but the meaning differs:
 
 | | Evolution API 2.3.7 | Relaybox |
 | --- | --- | --- |
@@ -100,7 +100,9 @@ Relaybox follows the reference's `syncFullHistory` setting and its `/settings/se
 | `syncFullHistory: true` | Asks WhatsApp for the full history | Imports the history WhatsApp sends |
 | Whether history is stored | `DATABASE_SAVE_DATA_HISTORIC` environment variable | The per-instance setting; no environment variable |
 | History webhooks | `CHATS_SET` and `MESSAGES_SET` are always sent | None are sent |
-| Other settings (`rejectCall`, `groupsIgnore`, `alwaysOnline`, `readMessages`, `readStatus`, `msgCall`, `wavoipToken`) | Accepted; the reference requires most of them | Not supported; any other field returns 400 |
+| `alwaysOnline` | Required; passed to Baileys as `markOnlineOnConnect` | Optional, off by default; passed as `markOnlineOnConnect` and applied at once to a connected instance |
+| `POST /settings/set` body | Requires most settings | Any of `syncFullHistory` and `alwaysOnline`, at least one; an omitted one keeps its stored value |
+| Other settings (`rejectCall`, `groupsIgnore`, `readMessages`, `readStatus`, `msgCall`, `wavoipToken`) | Accepted; the reference requires most of them | Not supported; any other field returns 400 |
 | `POST /settings/set` response | `{ settings: { instanceName, settings } }` | Same |
 | `GET /settings/find` response | The settings object, or `null` | The settings object; defaults when none were set |
 
@@ -108,3 +110,8 @@ Relaybox follows the reference's `syncFullHistory` setting and its `/settings/se
 (Desktop-client) history the reference asks for. What arrives is what WhatsApp sends to a regular
 linked device, usually the recent history. A client that sends the reference's full settings body
 to `/settings/set` receives a 400 naming the unsupported field.
+
+With `alwaysOnline` off, the instance tells WhatsApp it is offline, so contacts do not see it
+online and the phone keeps receiving notifications. Baileys then sends `inactive` delivery
+receipts instead of `delivery` ones, as the reference does. Baileys skips presence updates for an
+account without a push name, so the setting has no visible effect there.
