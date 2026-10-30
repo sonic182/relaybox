@@ -13,7 +13,7 @@ import { transcodeToOpus } from './audio';
 import { fetchRemoteMedia, InvalidMediaError, type ResolvedMedia } from './mediaFetch';
 import { capFileName, fileNameFromUrl, inferMimetype, withExtension } from './mimeTypes';
 import { backoffMs } from './queue';
-import { isHistorySyncEnabled } from './settings';
+import { isHistorySyncEnabled, readSettings } from './settings';
 import { isChatAlias, type ChatAlias } from './chatIdentity';
 
 /** Downloaded media bytes live here; files are keyed by instance and message id. */
@@ -176,6 +176,8 @@ export type InstanceService = {
   /** Unpairs the WhatsApp session, unlike `disconnectInstance`; a later connect needs a fresh QR. */
   logoutInstance(name: string): Promise<void>;
   reconnectInstance(name: string): Promise<void>;
+  /** Shows a connected instance as online (`available`) or offline (`unavailable`) to contacts; a no-op otherwise. */
+  setOnlinePresence(name: string, online: boolean): Promise<void>;
   deleteInstance(name: string): Promise<void>;
   restoreInstances(): Promise<void>;
   subscribe(listener: InstanceEventListener): () => void;
@@ -187,6 +189,8 @@ type LiveInstance = Instance & {
   stopped?: boolean;
   /** Consecutive close-triggered reconnects; drives backoff and resets on `open`. */
   reconnectAttempts?: number;
+  /** Bumped by every live presence push, so an older re-check read cannot override it. */
+  presencePushes?: number;
 };
 
 /** Caps a flapping connection's reconnect rate; unbounded retries otherwise hammer Postgres and Baileys. */
@@ -649,7 +653,16 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
     } = await import('baileys');
 
     const { state, saveCreds } = await createPostgresAuthState(db, instance.id, { BufferJSON, initAuthCreds, proto });
-    const sock = makeWASocket({ auth: state, logger: BAILEYS_LOGGER });
+    // Off sends `unavailable` on connect, so contacts do not see the number online and the
+    // phone keeps receiving notifications. A cosmetic setting must not block connecting.
+    const alwaysOnline = await readSettings(db, instance.id).then(
+      (settings) => settings.alwaysOnline,
+      (err: unknown) => {
+        logger.warn({ err, instance: instance.name }, 'presence setting read failed; connecting offline');
+        return false;
+      },
+    );
+    const sock = makeWASocket({ auth: state, logger: BAILEYS_LOGGER, markOnlineOnConnect: alwaysOnline });
     instance.sock = sock;
 
     sock.ev.on('creds.update', saveCreds);
@@ -857,6 +870,18 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
         instance.loggedOut = false;
         instance.reconnectAttempts = 0;
         notifyUpdated(instance, 'connection');
+        // A change saved while connecting skipped the live push and Baileys sent the value read
+        // before the socket opened; send the stored one if they differ.
+        const pushes = instance.presencePushes ?? 0;
+        void readSettings(db, instance.id)
+          .then((settings) => {
+            if (settings.alwaysOnline === alwaysOnline || instance.sock !== sock) return;
+            if ((instance.presencePushes ?? 0) !== pushes) return;
+            return sock.sendPresenceUpdate(settings.alwaysOnline ? 'available' : 'unavailable');
+          })
+          .catch((err) => {
+            logger.debug({ err, instance: instance.name }, 'presence re-check failed');
+          });
         // Baileys only emits group metadata after an explicit fetch on a reconnect.
         void sock.groupFetchAllParticipating().catch((err) => {
           logger.debug({ err, instance: instance.name }, 'group metadata sync failed');
@@ -1225,6 +1250,18 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
         await reconnect;
       } finally {
         if (reconnects.get(name) === reconnect) reconnects.delete(name);
+      }
+    },
+
+    async setOnlinePresence(name: string, online: boolean): Promise<void> {
+      const instance = instances.get(name);
+      if (!instance?.sock || instance.status !== 'open') return;
+      instance.presencePushes = (instance.presencePushes ?? 0) + 1;
+      try {
+        await instance.sock.sendPresenceUpdate(online ? 'available' : 'unavailable');
+      } catch (err) {
+        // The next connect applies the stored setting anyway.
+        logger.warn({ err, instance: name }, 'presence update failed');
       }
     },
 

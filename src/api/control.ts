@@ -42,13 +42,16 @@ function bodyObject(body: unknown): Record<string, unknown> {
   return body as Record<string, unknown>;
 }
 
+const SETTINGS_FIELDS = ['syncFullHistory', 'alwaysOnline'] as const;
+
 function createInput(body: unknown): InstanceCreateInput {
   const value = bodyObject(body);
-  const unsupported = Object.keys(value).find((key) => !['instanceName', 'qrcode', 'integration', 'webhook', 'syncFullHistory'].includes(key));
+  const unsupported = Object.keys(value).find((key) => !['instanceName', 'qrcode', 'integration', 'webhook', ...SETTINGS_FIELDS].includes(key));
   if (unsupported) throw badRequest(`Unsupported field: ${unsupported}`);
   if (!isValidName(value.instanceName)) throw badRequest('Invalid instance name');
-  if (value.qrcode !== undefined && typeof value.qrcode !== 'boolean') throw badRequest('"qrcode" must be a boolean');
-  if (value.syncFullHistory !== undefined && typeof value.syncFullHistory !== 'boolean') throw badRequest('"syncFullHistory" must be a boolean');
+  for (const field of ['qrcode', ...SETTINGS_FIELDS]) {
+    if (value[field] !== undefined && typeof value[field] !== 'boolean') throw badRequest(`"${field}" must be a boolean`);
+  }
   if (value.integration !== undefined && value.integration !== 'WHATSAPP-BAILEYS') throw badRequest('"integration" must be "WHATSAPP-BAILEYS"');
   if (value.webhook !== undefined && (typeof value.webhook !== 'object' || value.webhook === null || Array.isArray(value.webhook))) {
     throw badRequest('"webhook" must be an object');
@@ -58,10 +61,16 @@ function createInput(body: unknown): InstanceCreateInput {
 
 function settingsInput(body: unknown): SettingsInput {
   const value = bodyObject(body);
-  const unsupported = Object.keys(value).find((key) => key !== 'syncFullHistory');
+  const unsupported = Object.keys(value).find((key) => !(SETTINGS_FIELDS as readonly string[]).includes(key));
   if (unsupported) throw badRequest(`Unsupported field: ${unsupported}`);
-  if (typeof value.syncFullHistory !== 'boolean') throw badRequest('"syncFullHistory" must be a boolean');
-  return { syncFullHistory: value.syncFullHistory };
+  if (!SETTINGS_FIELDS.some((field) => field in value)) throw badRequest(`Expected at least one of: ${SETTINGS_FIELDS.join(', ')}`);
+  const input: SettingsInput = {};
+  for (const field of SETTINGS_FIELDS) {
+    if (value[field] === undefined) continue;
+    if (typeof value[field] !== 'boolean') throw badRequest(`"${field}" must be a boolean`);
+    input[field] = value[field];
+  }
+  return input;
 }
 
 function renameInput(body: unknown): string {
@@ -166,7 +175,10 @@ export function createControlService({ validator: api, instanceService, webhookS
           let instance = await instanceService.createInstance(value.instanceName, { failIfExists: true });
           try {
             if (value.webhook) await webhookService.setWebhook(value.instanceName, { webhook: value.webhook });
-            if (value.syncFullHistory !== undefined) await settingsService.setSettings(value.instanceName, { syncFullHistory: value.syncFullHistory });
+            const { syncFullHistory, alwaysOnline } = value;
+            if (syncFullHistory !== undefined || alwaysOnline !== undefined) {
+              await settingsService.setSettings(value.instanceName, { syncFullHistory, alwaysOnline });
+            }
           } catch (error) {
             await instanceService.deleteInstance(value.instanceName).catch((cleanupError: unknown) =>
               logger.error({ err: cleanupError, instance: value.instanceName }, 'failed to clean up instance after setup failed'));

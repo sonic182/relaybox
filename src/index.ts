@@ -20,7 +20,7 @@ if (REMOTE_TARGET.error) logger.error(`${REMOTE_TARGET.error}; remote control di
 const db = createDb();
 const instanceService = createInstanceService({ db, logger });
 const webhookService = createWebhookService({ db });
-const settingsService = createSettingsService({ db });
+const settingsService = createSettingsService({ db, applyPresence: instanceService.setOnlinePresence });
 const sendService = createSendService({ db, logger });
 const chatService = createChatService({ db, downloadMedia: instanceService.downloadMessageMedia });
 

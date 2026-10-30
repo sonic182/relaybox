@@ -57,6 +57,8 @@ model InstanceSettings {
     id              String   @id @default(cuid())
     /// Import the history WhatsApp sends while pairing; off ignores it.
     syncFullHistory Boolean  @default(false)
+    /// Show the instance as online while connected; off sends `unavailable` so the phone keeps notifications.
+    alwaysOnline    Boolean  @default(false)
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
 
