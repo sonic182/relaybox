@@ -189,6 +189,8 @@ type LiveInstance = Instance & {
   stopped?: boolean;
   /** Consecutive close-triggered reconnects; drives backoff and resets on `open`. */
   reconnectAttempts?: number;
+  /** Bumped by every live presence push, so an older re-check read cannot override it. */
+  presencePushes?: number;
 };
 
 /** Caps a flapping connection's reconnect rate; unbounded retries otherwise hammer Postgres and Baileys. */
@@ -870,9 +872,11 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
         notifyUpdated(instance, 'connection');
         // A change saved while connecting skipped the live push and Baileys sent the value read
         // before the socket opened; send the stored one if they differ.
+        const pushes = instance.presencePushes ?? 0;
         void readSettings(db, instance.id)
           .then((settings) => {
             if (settings.alwaysOnline === alwaysOnline || instance.sock !== sock) return;
+            if ((instance.presencePushes ?? 0) !== pushes) return;
             return sock.sendPresenceUpdate(settings.alwaysOnline ? 'available' : 'unavailable');
           })
           .catch((err) => {
@@ -1252,6 +1256,7 @@ export function createInstanceService(options: InstanceServiceOptions): Instance
     async setOnlinePresence(name: string, online: boolean): Promise<void> {
       const instance = instances.get(name);
       if (!instance?.sock || instance.status !== 'open') return;
+      instance.presencePushes = (instance.presencePushes ?? 0) + 1;
       try {
         await instance.sock.sendPresenceUpdate(online ? 'available' : 'unavailable');
       } catch (err) {
