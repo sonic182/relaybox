@@ -430,8 +430,8 @@ packages:
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
 
-  '@hono/node-server@1.19.17':
-    resolution: {integrity: sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==}
+  '@hono/node-server@1.19.19':
+    resolution: {integrity: sha512-Fy9R7PACOzHU9LDpfnuzVyuVYevKQRcEG2mZhmfc+DRdmayEd3RVfa2XOt2IgGcPNgA77Yk63KBszepcMFK5Ng==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -3489,7 +3489,7 @@ snapshots:
 
   '@hapi/hoek@9.3.0': {}
 
-  '@hono/node-server@1.19.17(hono@4.13.11)':
+  '@hono/node-server@1.19.19(hono@4.13.11)':
     dependencies:
       hono: 4.13.11
 
@@ -3664,7 +3664,7 @@ snapshots:
 
   '@modelcontextprotocol/node@2.1.1(@modelcontextprotocol/server@2.3.0)':
     dependencies:
-      '@hono/node-server': 1.19.17(hono@4.13.11)
+      '@hono/node-server': 1.19.19(hono@4.13.11)
       '@modelcontextprotocol/server': 2.3.0
       hono: 4.13.11
 
@@ -4176,7 +4176,7 @@ snapshots:
 
   '@zenstackhq/cli@3.9.2(express@5.2.1(supports-color@10.2.2))(kysely@0.29.5)(pg@8.23.0)(supports-color@10.2.2)(typescript@5.9.3)':
     dependencies:
-      '@hono/node-server': 1.19.17(hono@4.13.11)
+      '@hono/node-server': 1.19.19(hono@4.13.11)
       '@zenstackhq/common-helpers': 3.9.2
       '@zenstackhq/language': 3.9.2
       '@zenstackhq/orm': 3.9.2(pg@8.23.0)(zod@4.6.6)
